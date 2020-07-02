@@ -1,0 +1,57 @@
+<html>
+
+<body>
+    {{ pylivewire.load("TODOList")|safe }}
+    <script>
+        walkDom(document.body, null)
+        function sendAjax(link, payload, callback) {
+            var xmlhttp = new XMLHttpRequest();
+
+            xmlhttp.onreadystatechange = function () {
+                if (xmlhttp.readyState == XMLHttpRequest.DONE) {   // XMLHttpRequest.DONE == 4
+                    if (xmlhttp.status == 200) {
+                        callback(xmlhttp.responseText);
+                    }
+                }
+            };
+
+            xmlhttp.open("POST", link, true);
+            xmlhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+            xmlhttp.send(JSON.stringify(payload));
+        }
+
+        function update_element(element) {
+            function upd(value) {
+                parent = element.parentElement
+                element.outerHTML = value
+                walkDom(parent, null)
+            }
+            return upd
+        }
+
+        function sync_changes(el, enclosing_root) {
+            console.log(enclosing_root)
+            el.addEventListener("input", function (ev) {
+                payload = {}
+                payload[el.getAttribute("wire:model")] = el.value
+                sendAjax("http://localhost:8080/livewire/sync/" + enclosing_root.getAttribute("wire:id"), payload, update_element(enclosing_root))
+            });
+        }
+
+        function walkDom(el, enclosing_root) {
+            el.getAttribute("wire:id") && (enclosing_root = el)
+
+            model = el.getAttribute("wire:model")
+            if (model != null) {
+                sync_changes(el, enclosing_root)
+            }
+            el = el.firstElementChild
+            while (el) {
+                walkDom(el, enclosing_root);
+                el = el.nextElementSibling;
+            }
+        }
+    </script>
+</body>
+
+</html>
