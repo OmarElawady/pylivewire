@@ -1,4 +1,4 @@
-print(__name__)
+# print(__name__)
 from .component import Component
 
 from .pylivewire import load, init_pylivewire, load_component_object

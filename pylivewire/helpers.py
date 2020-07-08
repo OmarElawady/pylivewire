@@ -3,7 +3,6 @@ import json
 
 def jsonify(x):
     result = None
-    print("JSONIFY", x)
     try:
         result = x.to_json()
     except Exception:
