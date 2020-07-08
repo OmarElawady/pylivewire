@@ -2,20 +2,26 @@ from flask import render_template
 import os
 import json
 from pylivewire import Component
+import datetime
 
 VIEWS_DIR = "views"
 
 
 class Item(Component):
-    text = ""
+    def __init__(self, id, **kwargs):
+        super().__init__(id, **kwargs)
+        self.toggled = False
+
+    def remove_item(self):
+        self.parent.remove_item(self.id)
+
+    def toggle(self):
+        self.toggled = not self.toggled
+        self.parent.toggle(self.id)
+
+    def edit(self):
+        self.editing = True
 
     def render(self, **kwargs):
-        html = render_template("item_view.html", text=self.text)
-        pos = -1
-        for i, c in enumerate(html):
-            if c not in "<-._" and not c.isalnum():
-                pos = i
-                break
-        result = html[0:pos] + f' wire:id="{self.id}" ' + html[pos:]
-        print(result)
-        return result
+        html = self.render_template("item_view.html")
+        return html
