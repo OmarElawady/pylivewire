@@ -2,10 +2,12 @@ import json
 import os
 from .helpers import jsonify, is_jsonable, from_json
 import pickle
-from .session import load_from_session, is_visited, is_loaded
+from .session import load_from_session, is_loaded, is_visited
 from cerberus import Validator
 from flask import render_template
 from .errors import ValidationError
+import html
+from .events import add_event
 
 
 class Component:
@@ -21,26 +23,24 @@ class Component:
         for k, v in data.items():
             setattr(self, k, v)
 
-    # def to_json(self):
-    #     data_dict = {"id": self.id, "model": type(self).__name__}
-    #     for i in dir(self):
-    #         attr = getattr(self, i)
-    #         if not i.startswith("__") and is_jsonable(attr):
-    #             jsonfied = jsonify(attr)
-    #             data_dict[i] = jsonfied
-    #     return json.dumps(data_dict)
+    def to_json(self):
+        data_dict = {"id": self.id, "model": type(self).__name__}
+        for i in dir(self):
+            attr = getattr(self, i)
+            if not i.startswith("__") and is_jsonable(attr):
+                jsonfied = jsonify(attr)
+                data_dict[i] = jsonfied
+        return json.dumps(data_dict)
 
     def __setstate__(self, ddict):
         id = ddict["id"]
         if is_visited(id):
-            if is_loaded(id):
-                sess_obj = load_from_session(ddict["id"])
-                self.__dict__ = sess_obj.__dict__
-            else:
-                self.__dict__ = ddict
+            self.__dict__ = ddict
         else:
             sess_obj = load_from_session(ddict["id"])
             self.__dict__ = sess_obj.__dict__
+        # print("Fetching ", id)
+        # self.print()
 
     def serialize(self):
         return pickle.dumps(self)
@@ -84,14 +84,26 @@ class Component:
         if not errors:
             errors = {}
         self.errors = errors
-        html = self.render().strip()
+        html_code = self.render().strip()
         pos = -1
-        for i, c in enumerate(html):
+        for i, c in enumerate(html_code):
             if c not in "<-._" and not c.isalnum():
                 pos = i
                 break
-        result = html[0:pos] + f' wire:id="{self.id}" ' + html[pos:]
+        initial_data = self.get_initial_data()
+        initial_data_str = html.escape(json.dumps(initial_data))
+        result = html_code[0:pos] + f' wire:id="{self.id}" wire:initial-data="{initial_data_str}" ' + html_code[pos:]
+
         return result
+
+    def get_initial_data(self):
+        data = {}
+        data["name"] = self.__class__.__name__
+        data["data"] = self.to_json()
+        return data
+
+    def emit(self, event, *args):
+        add_event(event, *args)
 
     def render_template(self, template, **kwargs):
         updated_kwargs = {k: self.__dict__[k] for k in self.__dict__ if not k.startswith("__")}

@@ -11,14 +11,9 @@
         <input id="toggle-all" class="toggle-all" type="checkbox" wire:click="toggle_all">
         <label for="toggle-all">Mark all as complete</label>
         <ul class="todo-list">
-            {% for i in range(items|length) if filter == None or filter == toggled[i] %}
+            {% for i in range(items|length) if filter == None or filter == items[i].toggled %}
             {{items[i]|safe}}
-            <!-- <li class="{{ 'completed' if toggled[i]}} {{ 'editing' if items[i].editing}}">
-                <div class="view"><input class="toggle" type="checkbox"
-                        wire:click="toggle('{{items[i].id}}')">{{items[i]|safe}}<button class="destroy"
-                        wire:click="remove_item('{{items[i].id}}')"></button>
-                </div>
-            </li> -->
+
             {% endfor %}
         </ul>
     </section>
@@ -28,8 +23,7 @@
         </span>
         <ul class="filters">
             <li>
-                <a href="#/" class="{{ 'selected' if filter == None }}" wire:click.prevent="filter_all"
-                    class="selected">All</a>
+                <a href="#/" class="{{ 'selected' if filter == None }}" wire:click.prevent="filter_all">All</a>
             </li>
             <li>
                 <a href="#/active" class="{{ 'selected' if filter == False }}"

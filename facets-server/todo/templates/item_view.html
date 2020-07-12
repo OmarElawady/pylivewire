@@ -1,5 +1,5 @@
 <li class="{{ 'completed' if toggled}}">
-    <div class="view"><input class="toggle" type="checkbox" wire:click="toggle">
+    <div class="view"><input class="toggle" type="checkbox" wire:click="toggle" {{ 'checked' if toggled}}>
         <label>{{text}}</label>
         <button class="destroy" wire:click="remove_item"></button>
     </div>
