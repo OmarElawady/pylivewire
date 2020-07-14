@@ -11,9 +11,8 @@
         <input id="toggle-all" class="toggle-all" type="checkbox" wire:click="toggle_all">
         <label for="toggle-all">Mark all as complete</label>
         <ul class="todo-list">
-            {% for i in range(items|length) if filter == None or filter == items[i].toggled %}
-            {{items[i]|safe}}
-
+            {% for i in range(items|length) %}
+            {{ pylivewirecaller("Item", toggled=toggled[i], filter=filter, text=items[i], key=items_id[i])|safe }}
             {% endfor %}
         </ul>
     </section>

@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{% block title %}
+Admin page
+{% endblock %}
+
+
+
+{% block content %}
+<link href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css" rel="stylesheet" id="bootstrap-css">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/css/toastr.min.css" rel="stylesheet"
+    id="bootstrap-css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/js/toastr.min.js"></script>
+<script src="//netdna.bootstrapcdn.com/bootstrap/3.0.0/js/bootstrap.min.js"></script>
+<script src="//code.jquery.com/jquery-1.11.1.min.js"></script>
+<div style="display: flex;">
+    <div style="flex: 0 0 30%;margin-left:90px;margin-top:90px;">
+
+        {{ pylivewirecaller("UserList")|safe }}
+    </div>
+    <span style="flex-grow:1;"></span>
+    <div style="flex: 0 0 30%;margin-right:90px;margin-top:90px;">
+
+        {{ pylivewirecaller("TODOList")|safe }}
+    </div>
+</div>
+{% endblock %}

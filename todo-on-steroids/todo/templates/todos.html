@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+
+{% block title %}
+todos
+{% endblock %}
+
+
+
+{% block content %}
+<div style="margin-top:30px;max-width:550px;margin:0 auto;">
+    <h3 style="display:inline">Hello {{ first_name }} {{ last_name }}</h3>
+    <a href="/logout" style="float:right;font-size:18px;">logout</a>
+    {{ pylivewirecaller('TODOList')|safe}}
+</div>
+{% endblock %}

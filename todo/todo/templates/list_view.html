@@ -1,0 +1,38 @@
+<section class="todoapp">
+    <header class="header">
+        <h1>todos</h1>
+        <input class="new-todo" placeholder="What needs to be done?" wire:model="toadd"
+            wire:keydown.enter.prevent.stop="add_item" autofocus>
+        {% if 'toadd' in errors %}
+        <span style='color:red;font-size:13;'>* {{errors['toadd'][0]}}</span>
+        {% endif %}
+    </header>
+    <section class="main" {{'style="display: none;"'|safe if empty}}>
+        <input id="toggle-all" class="toggle-all" type="checkbox" wire:click="toggle_all">
+        <label for="toggle-all">Mark all as complete</label>
+        <ul class="todo-list">
+            {% for i in range(items|length) %}
+            {{ pylivewirecaller("Item", toggled=toggled[i], display=displayed[i], text=items[i], key=items[i] + displayed[i]|string)|safe }}
+            {% endfor %}
+        </ul>
+    </section>
+    <footer class="footer" {{'style="display: none;"'|safe if empty}}>
+        <span class="todo-count">
+            <strong>{{count}}</strong> items left
+        </span>
+        <ul class="filters">
+            <li>
+                <a href="#/" class="{{ 'selected' if filter == None }}" wire:click.prevent="filter_all">All</a>
+            </li>
+            <li>
+                <a href="#/active" class="{{ 'selected' if filter == False }}"
+                    wire:click.prevent="filter_active">Active</a>
+            </li>
+            <li>
+                <a href="#/completed" class="{{ 'selected' if filter == True }}"
+                    wire:click.prevent="filter_completed">Completed</a>
+            </li>
+        </ul>
+        <button class="clear-completed" wire:click="clear_completed">Clear completed</button>
+    </footer>
+</section>

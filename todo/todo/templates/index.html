@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <script src="{{url_for('static', filename='morphdom-esm.js')}}"></script>
+    <script src="{{url_for('static', filename='morphdom-umd.js')}}"></script>
+    <link rel="stylesheet" href="{{url_for('static', filename='index.css')}}" />
+    <link rel="stylesheet" href="{{url_for('static', filename='base.css')}}" />
+</head>
+
+<body>
+    {{ pylivewirecaller("TODOList")|safe }}
+    {{ pylivewire.scripts()|safe }}
+    <script src="{{url_for('static', filename='component.js')}}" defer></script>
+    <script src="{{url_for('static', filename='pylivewire.js')}}" defer></script>
+</body>
+
+</html>

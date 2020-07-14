@@ -8,10 +8,15 @@ app.secret_key = b'_5#y2L"F4Q8z\n\xec]/'
 app.config.from_object("config.Config")
 sess = Session()
 sess.init_app(app)
-render_template = partial(render_template, app=app, pylivewire=pylivewire)
+# render_template = partial(render_template, app=app, pylivewire=pylivewire, pylivewirecaller=pylivewire.pylivewirecaller)
 
 
 pylivewire.init_pylivewire(app, "todo")
+
+
+@app.context_processor
+def inject_user():
+    return dict(pylivewirecaller=pylivewire.pylivewirecaller, app=app, pylivewire=pylivewire)
 
 
 @app.route("/")

@@ -1,4 +1,4 @@
-<li class="{{ 'completed' if toggled}}">
+<li class="{{ 'completed' if toggled}}" {{ 'style="display:none"'|safe if not display }}>
     <div class="view"><input class="toggle" type="checkbox" wire:click="toggle" {{ 'checked' if toggled}}>
         <label>{{text}}</label>
         <button class="destroy" wire:click="remove_item"></button>
