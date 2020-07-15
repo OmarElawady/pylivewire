@@ -159,6 +159,8 @@ def register_syncer(app):
         res = None
         try:
             if type_ == "updateData":
+                for k, v in data.items():
+                    component_data[k] = v
                 component.update(data)
             elif type_ == "callMethod":  # Security issue!
                 call = data["methodName"]

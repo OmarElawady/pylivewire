@@ -4,6 +4,10 @@ event_remaining_count = 0
 active_events = new Set()
 components = {}
 
+requestQueue = {
+
+}
+
 const debounce = (func, wait) => {
     let timeout
 
@@ -25,15 +29,71 @@ function sendAjax(id, payload, callback) {
     xmlhttp.onreadystatechange = function () {
         if (xmlhttp.readyState == XMLHttpRequest.DONE) {   // XMLHttpRequest.DONE == 4
             if (xmlhttp.status == 200) {
+                active_events.delete(id)
                 callback(xmlhttp.responseText);
+                served(id)
             }
         }
     };
-
+    active_events.add(id)
     xmlhttp.open("POST", "/livewire/sync/" + id, true);
     xmlhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     xmlhttp.send(JSON.stringify(payload));
-    // callback(xmlhttp.responseText);
+}
+
+// function serve(id) {
+//     let payload, callback;
+//     payload = requestQueue[id][0][0]
+//     callback = requestQueue[id][0][1]
+//     wrapper = (...args) => {
+//         requestQueue[id].shift()
+//         callback(...args)
+//         if (requestQueue[id].length)
+//             serve(id)
+//     }
+//     sendAjax(id, payload, wrapper)
+// }
+
+// function appendRequest(id, payload, callback) {
+//     if (!(id in requestQueue))
+//         requestQueue[id] = []
+//     requestQueue[id].push([payload, callback])
+//     console.log(requestQueue[id].length)
+//     if (requestQueue[id].length == 1)
+//         serve(id)
+// }
+function executeHandlerOntime(handler, id, preprocessor) {
+    return (ev) => {
+        if (preprocessor !== undefined) {
+            if (!preprocessor(ev))
+                return
+        }
+        appendHandler(id, handler, ev)
+    }
+}
+function serve(id) {
+    let handler, ev;
+    handler = requestQueue[id][0][0]
+    ev = requestQueue[id][0][1]
+    // console.log(handler.toString())
+    handler(ev)
+    if (!active_events.has(id))
+        served(id)
+}
+
+function served(id) {
+    requestQueue[id].shift()
+    if (requestQueue[id].length)
+        serve(id)
+
+}
+
+function appendHandler(id, handler, ev) {
+    if (!(id in requestQueue))
+        requestQueue[id] = []
+    requestQueue[id].push([handler, ev])
+    if (requestQueue[id].length == 1)
+        serve(id)
 }
 
 function closest_component_root(el) {
@@ -43,13 +103,9 @@ function closest_component_root(el) {
 }
 
 function fireEvents(events) {
-    fireEvent()
+    for (ev of events)
+        fireEvent(ev)
 }
-
-// function update_element(element) {
-
-//     return upd
-// }
 
 function handle_response(element) {
 
@@ -71,8 +127,6 @@ function handle_response(element) {
                         : node.id
             },
             onBeforeElUpdated: (from, to) => {
-                // console.log(from, to, from.isEqualNode(to))
-                // console.log(from, to, from.isEqualNode(to), to.hasAttribute("ignore"))
                 if (from.isEqualNode(to))
                     return false
                 if (to.hasAttribute("ignore"))
@@ -80,7 +134,6 @@ function handle_response(element) {
                 return to
             },
             onNodeAdded: (node) => {
-                // console.log("Adding ", node)
                 if (node.nodeType == Node.ELEMENT_NODE) {
                     let enclosing_root = closest_component_root(node)
                     if (!node.hasAttribute("ignore"))
@@ -90,17 +143,20 @@ function handle_response(element) {
         })
     }
 
-    function update_dirty_inputs(el, component) {
+    function updateDirtyInputs(el, component, dirtyInputs) {
+        // console.log(dirtyInputs)
         if (el.hasAttribute("wire:id") && el.getAttribute("wire:id") != element.getAttribute("wire:id"))
             return
         if (el.hasAttribute("wire:model")) {
             model = el.getAttribute("wire:model")
-            if (component.data[model] != el.value)
+            // console.log(model, dirtyInputs, model in dirtyInputs)
+            if (dirtyInputs.indexOf(model) != -1) {
                 el.value = component.data[model]
+            }
         }
         el = el.firstElementChild
         while (el) {
-            update_dirty_inputs(el, component);
+            updateDirtyInputs(el, component, dirtyInputs)
             el = el.nextElementSibling;
         }
     }
@@ -110,12 +166,12 @@ function handle_response(element) {
         let dom = value['dom']
         let events = value['dispatchEvents']
         let component = components[value["newData"]["id"]]
+        let dirtyInputs = value["dirtyInputs"]
         component.updateData(value["newData"])
         alreadyRendered = component.renderedChildren
-        event_queue.push(...events)
         update_dom(dom)
-        // update_dirty_inputs(element, component)
-        fireEvents()
+        updateDirtyInputs(element, component, dirtyInputs)
+        fireEvents(events)
         let redirect = value['redirect']
         component.updateRenderedChildren(value["renderedChildren"])
         if (redirect != "")
@@ -135,7 +191,7 @@ function sync_changes(el, enclosing_root, prop) {
     }
     if (isDebounce)
         handler = debounce(handler, debounceInterval)
-    el.addEventListener(lazy ? "change" : "input", handler);
+    el.addEventListener(lazy ? "change" : "input", executeHandlerOntime(handler, enclosing_root.getAttribute("wire:id")));
 }
 
 function createPayload(el, type, json) {
@@ -216,14 +272,18 @@ function addLiveWireEventListener(el, enclosing_root, key) {
             listen_to.push(camelCase)
         }
     }
-    function handler(ev) {
-        if (self && ev.target != el) return
+    function preprocessor(ev) {
+
+        if (self && ev.target != el) return false
         if (key_specified && listen_to.indexOf(ev.key) == -1)
-            return
+            return false
         if (preventDefault)
             ev.preventDefault()
         if (stopPropagation)
             ev.stopPropagation()
+        return true
+    }
+    function handler(ev) {
         let value = el.getAttribute("wire:" + key)
         let payload = createMethodCallPayload(enclosing_root, value)
         let callback = handle_response(enclosing_root)
@@ -233,7 +293,7 @@ function addLiveWireEventListener(el, enclosing_root, key) {
     if (isDebounce)
         handler = debounce(handler, debounceInterval)
 
-    el.addEventListener(event, handler)
+    el.addEventListener(event, executeHandlerOntime(handler, enclosing_root.getAttribute("wire:id"), preprocessor))
 }
 
 function setLivewireListeners(el, enclosing_root) {
@@ -261,10 +321,10 @@ function setEventListeners(el, enclosing_root) {
         return
     let component_listeners = listeners[component_name]
     for (let i = 0; i < component_listeners.length; i++) {
-        if (!(component_listeners[i] in event_subscribtions))
-            event_subscribtions[component_listeners[i]] = 0
-        event_subscribtions[component_listeners[i]]++;
-        document.addEventListener(component_listeners[i], function (ev) {
+        // if (!(component_listeners[i] in event_subscribtions))
+        //     event_subscribtions[component_listeners[i]] = 0
+        // event_subscribtions[component_listeners[i]]++;
+        document.addEventListener(component_listeners[i], executeHandlerOntime(function (ev) {
             let value = ev.detail.name
             let args = ev.detail.args
             // console.log(value, args)
@@ -272,14 +332,14 @@ function setEventListeners(el, enclosing_root) {
             let wrapper = val => {
                 // console.log(el, enclosing_root)
                 handle_response(enclosing_root)(val)
-                event_remaining_count--;
+                // event_remaining_count--;
                 // console.log("events remaining wrapper", event_remaining_count)
-                fireEvent()
+                // fireEvent()
             }
             // let callback = update_element(enclosing_root)
             let id = enclosing_root.getAttribute("wire:id")
             sendAjax(id, payload, wrapper)
-        })
+        }, enclosing_root.getAttribute("wire:id")))
     }
 }
 
@@ -294,23 +354,19 @@ function initializeComponent(el, enclosing_root) {
     components[id] = component
 }
 
-function fireEvent() {
-    if (event_queue.length == 0 || event_remaining_count != 0)
-        return
-    let top_event = event_queue.shift()
-    let event = top_event['event']
-    event_remaining_count = event_subscribtions[event]
-    let args = top_event['args']
+function fireEvent(ev) {
+    let event = ev['event']
+    // event_remaining_count = event_subscribtions[event]
+    let args = ev['args']
     let evt = new CustomEvent(event, { detail: { name: event, args: args } })
     document.dispatchEvent(evt)
 }
 
 function $emit(event, ...args) {
-    event_queue.push({
+    fireEvent({
         'event': event,
         'args': args
     })
-    fireEvent()
 }
 
 function walkWireProps(el, enclosing_root) {
