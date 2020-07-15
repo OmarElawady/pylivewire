@@ -2,8 +2,16 @@
 
 git clone repo
 
-cd pylivewire/facets-server
+cd pylivewire
 
-PYTHONPATH="$PYTHONPATH:/repo/location/" python runserver.py
+virtualenv venv
 
-goto localhost:8080 and edit the input
+source ./venv/bin/activate
+
+pip install -r requirements.txt
+
+cd todo-on-steroids
+
+PYTHONPATH="$PYTHONPATH:/repo/location/" FLASK_APP=todo flask run
+
+goto localhost:5000
