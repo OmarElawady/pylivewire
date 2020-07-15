@@ -41,27 +41,6 @@ function sendAjax(id, payload, callback) {
     xmlhttp.send(JSON.stringify(payload));
 }
 
-// function serve(id) {
-//     let payload, callback;
-//     payload = requestQueue[id][0][0]
-//     callback = requestQueue[id][0][1]
-//     wrapper = (...args) => {
-//         requestQueue[id].shift()
-//         callback(...args)
-//         if (requestQueue[id].length)
-//             serve(id)
-//     }
-//     sendAjax(id, payload, wrapper)
-// }
-
-// function appendRequest(id, payload, callback) {
-//     if (!(id in requestQueue))
-//         requestQueue[id] = []
-//     requestQueue[id].push([payload, callback])
-//     console.log(requestQueue[id].length)
-//     if (requestQueue[id].length == 1)
-//         serve(id)
-// }
 function executeHandlerOntime(handler, id, preprocessor) {
     return (ev) => {
         if (preprocessor !== undefined) {
@@ -72,11 +51,11 @@ function executeHandlerOntime(handler, id, preprocessor) {
     }
 }
 function serve(id) {
-    let handler, ev;
+    let handler, args;
     handler = requestQueue[id][0][0]
-    ev = requestQueue[id][0][1]
+    args = requestQueue[id][0][1]
     // console.log(handler.toString())
-    handler(ev)
+    handler(...args)
     if (!active_events.has(id))
         served(id)
 }
@@ -88,10 +67,10 @@ function served(id) {
 
 }
 
-function appendHandler(id, handler, ev) {
+function appendHandler(id, handler, ...args) {
     if (!(id in requestQueue))
         requestQueue[id] = []
-    requestQueue[id].push([handler, ev])
+    requestQueue[id].push([handler, args])
     if (requestQueue[id].length == 1)
         serve(id)
 }
@@ -110,10 +89,10 @@ function fireEvents(events) {
 function handle_response(element) {
 
     function update_dom(dom) {
-        console.log("Updating")
-        console.log(element.outerHTML)
-        console.log(dom)
-        console.log("----------------------------")
+        // console.log("Updating")
+        // console.log(element.outerHTML)
+        // console.log(dom)
+        // console.log("----------------------------")
         // console.log(element, dom)
         morphdom(element, dom, {
             childrenOnly: false,
@@ -398,7 +377,7 @@ function walkWireProps(el, enclosing_root) {
         if (attrib.name.startsWith("wire:")) {
             if (attrib.name.startsWith("wire:model")) {
                 sync_changes(el, enclosing_root, attrib.name.slice(5))
-                el.dispatchEvent(new Event("change"))
+                executeHandlerOntime(() => sendSyncRequest(enclosing_root, attrib.value, el.value), enclosing_root.getAttribute("wire:id"))()
             } else
                 addLiveWireEventListener(el, enclosing_root, attrib.name.slice(5))
         }
