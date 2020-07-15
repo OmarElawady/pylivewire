@@ -22,15 +22,16 @@
         </span>
         <ul class="filters">
             <li>
-                <a href="#/" class="{{ 'selected' if filter == None }}" wire:click.prevent="filter_all">All</a>
+                <a href="#/" class="{{ 'selected' if filter == None }}"
+                    wire:click.prevent="$set('filter', 'all')">All</a>
             </li>
             <li>
                 <a href="#/active" class="{{ 'selected' if filter == False }}"
-                    wire:click.prevent="filter_active">Active</a>
+                    wire:click.prevent="$set('filter', 'active')">Active</a>
             </li>
             <li>
                 <a href="#/completed" class="{{ 'selected' if filter == True }}"
-                    wire:click.prevent="filter_completed">Completed</a>
+                    wire:click.prevent="$set('filter', 'completed')">Completed</a>
             </li>
         </ul>
         <button class="clear-completed" wire:click="clear_completed">Clear completed</button>

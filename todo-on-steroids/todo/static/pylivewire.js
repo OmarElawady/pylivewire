@@ -110,13 +110,16 @@ function fireEvents(events) {
 function handle_response(element) {
 
     function update_dom(dom) {
-
+        console.log("Updating")
+        console.log(element.outerHTML)
+        console.log(dom)
+        console.log("----------------------------")
         // console.log(element, dom)
         morphdom(element, dom, {
-            // childrenOnly: false,
+            childrenOnly: false,
             getNodeKey: node => {
                 if (node.nodeType != Node.ELEMENT_NODE)
-                    return null;
+                    return node.id;
                 // console.log(node.getAttribute("wire:key"), node.getAttribute("wire:id"))
                 // This allows the tracking of elements by the "key" attribute, like in VueJs.
                 return node.hasAttribute(`wire:key`)
@@ -127,11 +130,19 @@ function handle_response(element) {
                         : node.id
             },
             onBeforeElUpdated: (from, to) => {
+                // console.log("Updating")
+                // console.log(from.outerHTML)
+                // console.log(to.outerHTML)
+                // console.log("-----------------------------------")
                 if (from.isEqualNode(to))
                     return false
                 if (to.hasAttribute("ignore"))
                     return false
                 return to
+            },
+            onBeforeNodeDiscarded: (node) => {
+                // console.log("Deleting", node)
+                return true
             },
             onNodeAdded: (node) => {
                 if (node.nodeType == Node.ELEMENT_NODE) {
@@ -186,8 +197,7 @@ function sync_changes(el, enclosing_root, prop) {
     let isDebounce = props.indexOf("debounce") != -1
     let debounceInterval = isDebounce ? props[props.indexOf("debounce") + 1] : -1
     handler = function (ev) {
-        let model = el.getAttribute("wire:" + prop)
-        sendAjax(enclosing_root.getAttribute("wire:id"), createSyncPayload(enclosing_root, model, el.value), handle_response(enclosing_root))
+        sendSyncRequest(enclosing_root, el.getAttribute("wire:" + prop), el.value)
     }
     if (isDebounce)
         handler = debounce(handler, debounceInterval)
@@ -285,10 +295,14 @@ function addLiveWireEventListener(el, enclosing_root, key) {
     }
     function handler(ev) {
         let value = el.getAttribute("wire:" + key)
-        let payload = createMethodCallPayload(enclosing_root, value)
-        let callback = handle_response(enclosing_root)
-        let id = enclosing_root.getAttribute("wire:id")
-        sendAjax(id, payload, callback)
+        if (value[0] == '$') {
+            eval(value.replace("(", ".call(el, "))
+        } else {
+            let payload = createMethodCallPayload(enclosing_root, value)
+            let callback = handle_response(enclosing_root)
+            let id = enclosing_root.getAttribute("wire:id")
+            sendAjax(id, payload, callback)
+        }
     }
     if (isDebounce)
         handler = debounce(handler, debounceInterval)
@@ -354,6 +368,10 @@ function initializeComponent(el, enclosing_root) {
     components[id] = component
 }
 
+function sendSyncRequest(enclosing_root, prop, val) {
+    sendAjax(enclosing_root.getAttribute("wire:id"), createSyncPayload(enclosing_root, prop, val), handle_response(enclosing_root))
+}
+
 function fireEvent(ev) {
     let event = ev['event']
     // event_remaining_count = event_subscribtions[event]
@@ -368,7 +386,10 @@ function $emit(event, ...args) {
         'args': args
     })
 }
-
+function $set(prop, val) {
+    let enclosing_root = closest_component_root(this)
+    sendSyncRequest(enclosing_root, prop, val)
+}
 function walkWireProps(el, enclosing_root) {
     setEventListeners(el, enclosing_root)
     initializeComponent(el, enclosing_root)

@@ -15,8 +15,6 @@ class UserList(Component):
         db.session.query(User).filter(User.id == user_id).delete()
         db.session.commit()
 
-        self.users = [v for v in self.users if v["id"] != user_id]
-
     def select_page(self, page):
         self.current_page = page
 

@@ -16,7 +16,7 @@ from copy import deepcopy
 class Component:
     id = ""
     key = ""
-
+    
     def __init__(self, **kwargs):
         # print(kwargs)
         self.key = str(kwargs["_key"])
@@ -33,6 +33,7 @@ class Component:
     def initialize_defaults(self):
         filtered_out = set("listeners")
         data = {k: v for k, v in self.__class__.__dict__.items() if not k.startswith("_") and k not in filtered_out}
+        data["_livewire_parent_component"] = None
         for k, v in data.items():
             if k not in self.__dict__ and not callable(v):
                 setattr(self, k, deepcopy(v))
@@ -189,6 +190,7 @@ class Component:
     def render_template(self, template, **kwargs):
         updated_kwargs = {k: self.__dict__[k] for k in self.__dict__ if not k.startswith("__")}
         updated_kwargs["errors"] = self._errors
+        updated_kwargs["obj"] = self
         updated_kwargs.update(kwargs)
         return render_template(template, **updated_kwargs)
 

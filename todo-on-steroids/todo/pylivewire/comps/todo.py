@@ -25,11 +25,12 @@ class TODOList(Component):
             self.user_id = current_user.id
         self.populate_from_db()
 
-    def hydrate(self):
-        pass
 
     def updated_toadd(self, **kwargs):
         self.validate({"toadd": {"check_with": fancy_validate_toadd, "maxlength": 50}})
+
+    def updated_filter(self, **kwargs):
+        self.emit("filter_todo", self.filter)
 
     def populate_from_db(self):
         todos = db.session.query(Todo).filter(Todo.user_id == self.user_id)
@@ -61,11 +62,13 @@ class TODOList(Component):
         for i, e in enumerate(self.items):
             if self.items_id[i] == item_key:
                 return i
-        assert False
+        # assert False
         return -1
 
     def remove_item(self, item_key):
         item = self.find_item(item_key)
+        if item == -1:
+            return
         entry = db.session.query(Todo).filter(Todo.id == self.items_id[item]).first()
         db.session.delete(entry)
         db.session.commit()

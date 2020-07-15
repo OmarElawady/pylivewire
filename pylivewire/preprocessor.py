@@ -31,6 +31,7 @@ class InlineGettext(Extension):
         inside_jinja = False
         token_count = 0
         for token in stream:
+            # print(token.type, token.value)
             lineno = token.lineno
             token_count += 1
             if token.type == "variable_begin":
@@ -45,7 +46,11 @@ class InlineGettext(Extension):
                     yield Token(lineno, "lparen", "(")
                     yield Token(lineno, "name", "key")
                     yield Token(lineno, "assign", "=")
-                    yield Token(lineno, "integer", lineno)
+                    yield Token(lineno, "string", f"wire:{lineno}")
+                    yield Token(lineno, "comma", ",")
+                    yield Token(lineno, "name", "_livewire_parent_component")
+                    yield Token(lineno, "assign", "=")
+                    yield Token(lineno, "name", "obj")
                     yield Token(lineno, "rparen", ")")
                 else:
                     yield token

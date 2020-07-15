@@ -14,11 +14,11 @@ import ast
 from .errors import ValidationError
 from .events import get_events, clear_events
 from .debug import print_component, print_component_from_string
+from jinja2 import Undefined
 
 models = dict()
 flask_app = None
-rendering_stack = []
-
+# rendering_stack = []
 
 def load_models(root_dir):
     COMPONENTS_DIR = os.path.join(root_dir, "pylivewire/comps")
@@ -53,12 +53,17 @@ def get_tag(html):
 
 
 def pylivewirecaller(*args, **kwargs):
+    
+    assert "_livewire_parent_component" in kwargs
+    if isinstance(kwargs["_livewire_parent_component"], Undefined):
+        kwargs["_livewire_parent_component"] = None
     if len(args) == 0:
         if "key" in kwargs:
 
             def closure(*iargs, **ikwargs):
                 if "key" not in ikwargs:
                     ikwargs["key"] = kwargs["key"]
+                ikwargs["_livewire_parent_component"] = kwargs["_livewire_parent_component"]
                 return pylivewirecaller(*iargs, **ikwargs)
 
             return closure
@@ -76,18 +81,18 @@ def pylivewirecaller(*args, **kwargs):
 
     # session_hack[id] = component_obj.serialize()
     # print(args[0], rendering_stack)
-    if len(rendering_stack) and rendering_stack[-1].is_previously_rendered(component_obj.key):
-        data = rendering_stack[-1].get_previously_rendered_data(component_obj.key)
-        rendering_stack[-1].add_rendered_child(component_obj.key, data["id"], data["tag"])
+    if component_obj._livewire_parent_component and component_obj._livewire_parent_component.is_previously_rendered(component_obj.key):
+        data = component_obj._livewire_parent_component.get_previously_rendered_data(component_obj.key)
+        component_obj._livewire_parent_component.add_rendered_child(component_obj.key, data["id"], data["tag"])
         # print("-------------------------------------------------------------------------------------------------")
         return dummy_component_element(data, component_obj.key)
 
-    rendering_stack.append(component_obj)
+    # rendering_stack.append(component_obj)
     res = component_obj.render_annotated()
-    if len(rendering_stack) > 1:
+    if component_obj._livewire_parent_component:
         # print("+++++++++++++++++++++++++++++++++++++++++")
-        rendering_stack[-2].add_rendered_child(component_obj.key, component_obj.id, get_tag(res))
-    rendering_stack.pop()
+        component_obj._livewire_parent_component.add_rendered_child(component_obj.key, component_obj.id, get_tag(res))
+    # rendering_stack.pop()
     return res
 
 
@@ -154,7 +159,7 @@ def register_syncer(app):
         rendered = request.json["renderedChildren"]
         component = models[component_class].from_json(flask_app, component_data)
         component.set_previously_rendered_children(rendered)
-        rendering_stack.append(component)
+        # rendering_stack[component_id] = [component]
         errors = {}
         res = None
         try:
@@ -192,7 +197,7 @@ def register_syncer(app):
             "redirect": res,
             "dirtyInputs": get_dirty_inputs(component_data, new_data),
         }
-        rendering_stack.pop()
+        # del rendering_stack[component_id]
         # print("------------------------------------------------------")
         # print("after")
         # pprint(session)
