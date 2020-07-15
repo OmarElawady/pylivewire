@@ -18,11 +18,9 @@ class Component:
     key = ""
     
     def __init__(self, **kwargs):
-        # print(kwargs)
         self.key = str(kwargs["_key"])
         self.id = self.generate_random_id()
         self._jinja_env = kwargs["_flask_app"].jinja_env
-        # print(self._jinja_env)
         self.fill_data(kwargs)
         _, filename = os.path.split(__file__)
         self.component_name, _ = os.path.splitext(filename)
@@ -60,7 +58,6 @@ class Component:
 
     def to_json(self):
         data_dict = {k: v for k, v in self.__dict__.items() if not k.startswith("_")}
-        # data_dict["model"] = type(self).__name__
         return data_dict
         for i in dir(self):
             attr = getattr(self, i)
@@ -69,48 +66,11 @@ class Component:
                 data_dict[i] = jsonfied
         return data_dict
 
-    # def __getstate__(self):
-    #     return {k: v for k, v in self.__dict__.items() if not k.startswith("_")}
-
-    # def __setstate__(self, ddict):
-    #     id = ddict["id"]
-    #     if is_visited(id):
-    #         self.__dict__ = ddict
-    #     else:
-    #         sess_obj = load_from_session(ddict["id"])
-    #         self.__dict__ = sess_obj.__dict__
-    #     # print("Fetching ", id)
-    #     # self.print()
-
-    # def serialize(self):
-    #     return pickle.dumps(self)
-    # hist = {}
-    # for k in dir(self):
-    #     if k.startswith("__"):
-    #         continue
-    #     v = getattr(self, k)
-    #     if isinstance(v, Component):
-    #         hist[k] = v
-    #         setattr(self, k, ComponentRef(v.id))
-    # res = pickle.dumps(self)
-    # for k, v in hist.items():
-    #     setattr(self, k, v)
-    # return res
-
-    # @classmethod
-    # def deserialize(cls, data):
-    #     return pickle.loads(data)
-
     @classmethod
     def from_json(cls, flask_app, data):
-        # new_instance = cls(_key=data["key"], _flask_app=flask_app)
         new_instance = cls(_key=data["key"], _flask_app=flask_app)
-        # print(data)
         new_instance.fill_data(data)
         new_instance.hydrate()
-        # new_instance.__class__ = cls
-        # new_instance.__dict__ = data
-        # new_instance._flask_app = flask_app
         return new_instance
         for k, v in data.items():
             try:
@@ -147,7 +107,6 @@ class Component:
                 break
         initial_data = self.get_initial_data()
         initial_data_str = html.escape(json.dumps(initial_data))
-        # print(initial_data)
         result = (
             html_code[0:pos]
             + f' wire:id="{self.id}" wire:key="{self.key}" wire:initial-data="{initial_data_str}" '
@@ -164,18 +123,11 @@ class Component:
         if not errors:
             errors = {}
         self._errors = errors
-        # env = Environment(loader=FileSystemLoader("frontdesk/templates"))
-        # template = environment.get_template("list_view.html")
-        # print(template)
         initial_render = self.render()
-        # template = self._jinja_env.get_template("list_view.html")
-        # template_source = self.get_template_source(template)
-        # print(template_source)
         return self.add_attrs_to_html(initial_render)
 
     def get_initial_data(self):
         data = {}
-        # data["key"] = self.key
         data["name"] = self.__class__.__name__
         data["data"] = self.to_json()
         data["renderedChildren"] = self._rendered_children

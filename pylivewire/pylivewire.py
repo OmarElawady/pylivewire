@@ -18,7 +18,6 @@ from jinja2 import Undefined
 
 models = dict()
 flask_app = None
-# rendering_stack = []
 
 def load_models(root_dir):
     COMPONENTS_DIR = os.path.join(root_dir, "pylivewire/comps")
@@ -29,7 +28,7 @@ def load_models(root_dir):
         classes = inspect.getmembers(module, inspect.isclass)
         model_class = None
         for c in classes:
-            if issubclass(c[1], Component):  # should be BaseComponent
+            if issubclass(c[1], Component):
                 model_class = c[1]
         if model_class is not None:
             models[model_class.__name__] = model_class
@@ -72,45 +71,31 @@ def pylivewirecaller(*args, **kwargs):
     component = args[0]
     kwargs["_key"] = kwargs["key"]
     del kwargs["key"]
-    # id = generate_id()
     component_class = models[component]
-    # active_components.add(component_class)
     component_obj = component_class(_flask_app=flask_app, **kwargs)
     component_obj.mount()
     component_obj.hydrate()
 
-    # session_hack[id] = component_obj.serialize()
-    # print(args[0], rendering_stack)
     if component_obj._livewire_parent_component and component_obj._livewire_parent_component.is_previously_rendered(component_obj.key):
         data = component_obj._livewire_parent_component.get_previously_rendered_data(component_obj.key)
         component_obj._livewire_parent_component.add_rendered_child(component_obj.key, data["id"], data["tag"])
-        # print("-------------------------------------------------------------------------------------------------")
         return dummy_component_element(data, component_obj.key)
 
-    # rendering_stack.append(component_obj)
     res = component_obj.render_annotated()
     if component_obj._livewire_parent_component:
-        # print("+++++++++++++++++++++++++++++++++++++++++")
         component_obj._livewire_parent_component.add_rendered_child(component_obj.key, component_obj.id, get_tag(res))
-    # rendering_stack.pop()
     return res
 
 
 def load(component, **kwargs):
-    # id = generate_id()
     component_class = models[component]
-    # active_components.add(component_class)
     component_obj = component_class(id, flask_app=flask_app, **kwargs)
-    # session_hack[id] = component_obj.serialize()
     return component_obj.render_annotated()
 
 
 def load_component_object(component, id=None, **kwargs):
-    # id = generate_id()
     component_class = models[component]
-    # active_components.add(component_class)
     component_obj = component_class(id, flask_app=flask_app, **kwargs)
-    # session_hack[id] = component_obj.serialize()
     return component_obj
 
 
@@ -120,10 +105,6 @@ def scripts():
         comp = models[name]
         if hasattr(comp, "listeners"):
             listeners[comp.__name__] = comp.listeners
-            # for ls in comp.listeners:
-            #     if ls not in listeners:
-            #         listeners[ls] = []
-            #     listeners[ls].append(comp.__name__)
     return f"""
     <script>
     listeners = {json.dumps(listeners)}
@@ -143,13 +124,6 @@ def register_syncer(app):
     @app.route("/livewire/sync/<component_id>", methods=["POST"])
     def handle(component_id):
         global flask_app
-        # print("------------------------------------------------------")
-        # from pprint import pprint
-
-        # print("before")
-        # pprint(session)
-        # print("------------------------------------------------------")
-        # print(session)
         clear_events()
         clear_session()
         type_ = request.json["type"]
@@ -159,7 +133,6 @@ def register_syncer(app):
         rendered = request.json["renderedChildren"]
         component = models[component_class].from_json(flask_app, component_data)
         component.set_previously_rendered_children(rendered)
-        # rendering_stack[component_id] = [component]
         errors = {}
         res = None
         try:
@@ -197,22 +170,12 @@ def register_syncer(app):
             "redirect": res,
             "dirtyInputs": get_dirty_inputs(component_data, new_data),
         }
-        # del rendering_stack[component_id]
-        # print("------------------------------------------------------")
-        # print("after")
-        # pprint(session)
-        # print("------------------------------------------------------")
-
-        # import ipdb
-
-        # ipdb.set_trace()
         return json.dumps(response_data)
 
 
 def init_pylivewire(app, root_dir):
     global render_template, flask_app
     flask_app = app
-    # render_template = partial(render_template, app=app, pylivewirecaller=pylivewirecaller)
     register_syncer(app)
     load_models(root_dir)
     app.jinja_env.add_extension("pylivewire.preprocessor.InlineGettext")

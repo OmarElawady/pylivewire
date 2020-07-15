@@ -1,6 +1,3 @@
-event_queue = []
-event_subscribtions = {}
-event_remaining_count = 0
 active_events = new Set()
 components = {}
 
@@ -54,7 +51,6 @@ function serve(id) {
     let handler, args;
     handler = requestQueue[id][0][0]
     args = requestQueue[id][0][1]
-    // console.log(handler.toString())
     handler(...args)
     if (!active_events.has(id))
         served(id)
@@ -89,11 +85,6 @@ function fireEvents(events) {
 function handle_response(element) {
 
     function update_dom(dom) {
-        // console.log("Updating")
-        // console.log(element.outerHTML)
-        // console.log(dom)
-        // console.log("----------------------------")
-        // console.log(element, dom)
         morphdom(element, dom, {
             childrenOnly: false,
             getNodeKey: node => {
@@ -109,10 +100,6 @@ function handle_response(element) {
                         : node.id
             },
             onBeforeElUpdated: (from, to) => {
-                // console.log("Updating")
-                // console.log(from.outerHTML)
-                // console.log(to.outerHTML)
-                // console.log("-----------------------------------")
                 if (from.isEqualNode(to))
                     return false
                 if (to.hasAttribute("ignore"))
@@ -120,7 +107,6 @@ function handle_response(element) {
                 return to
             },
             onBeforeNodeDiscarded: (node) => {
-                // console.log("Deleting", node)
                 return true
             },
             onNodeAdded: (node) => {
@@ -134,12 +120,10 @@ function handle_response(element) {
     }
 
     function updateDirtyInputs(el, component, dirtyInputs) {
-        // console.log(dirtyInputs)
         if (el.hasAttribute("wire:id") && el.getAttribute("wire:id") != element.getAttribute("wire:id"))
             return
         if (el.hasAttribute("wire:model")) {
             model = el.getAttribute("wire:model")
-            // console.log(model, dirtyInputs, model in dirtyInputs)
             if (dirtyInputs.indexOf(model) != -1) {
                 el.value = component.data[model]
             }
@@ -314,24 +298,12 @@ function setEventListeners(el, enclosing_root) {
         return
     let component_listeners = listeners[component_name]
     for (let i = 0; i < component_listeners.length; i++) {
-        // if (!(component_listeners[i] in event_subscribtions))
-        //     event_subscribtions[component_listeners[i]] = 0
-        // event_subscribtions[component_listeners[i]]++;
         document.addEventListener(component_listeners[i], executeHandlerOntime(function (ev) {
             let value = ev.detail.name
             let args = ev.detail.args
-            // console.log(value, args)
             let payload = createEventTriggerPayload(enclosing_root, value, args)
-            let wrapper = val => {
-                // console.log(el, enclosing_root)
-                handle_response(enclosing_root)(val)
-                // event_remaining_count--;
-                // console.log("events remaining wrapper", event_remaining_count)
-                // fireEvent()
-            }
-            // let callback = update_element(enclosing_root)
             let id = enclosing_root.getAttribute("wire:id")
-            sendAjax(id, payload, wrapper)
+            sendAjax(id, payload, handle_response(enclosing_root))
         }, enclosing_root.getAttribute("wire:id")))
     }
 }
@@ -353,7 +325,6 @@ function sendSyncRequest(enclosing_root, prop, val) {
 
 function fireEvent(ev) {
     let event = ev['event']
-    // event_remaining_count = event_subscribtions[event]
     let args = ev['args']
     let evt = new CustomEvent(event, { detail: { name: event, args: args } })
     document.dispatchEvent(evt)
