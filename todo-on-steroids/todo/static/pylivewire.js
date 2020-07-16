@@ -5,6 +5,10 @@ requestQueue = {
 
 }
 
+eventListenersLists = {
+
+}
+
 const debounce = (func, wait) => {
     let timeout
 
@@ -18,7 +22,9 @@ const debounce = (func, wait) => {
         timeout = setTimeout(later, wait)
     }
 }
+
 walkDom(document.body, null)
+setUpEventListeners()
 
 function sendAjax(id, payload, callback) {
     let xmlhttp = new XMLHttpRequest();
@@ -40,6 +46,8 @@ function sendAjax(id, payload, callback) {
 
 function executeHandlerOntime(handler, id, preprocessor) {
     return (ev) => {
+        if (!(id in components))
+            return;
         if (preprocessor !== undefined) {
             if (!preprocessor(ev))
                 return
@@ -48,6 +56,10 @@ function executeHandlerOntime(handler, id, preprocessor) {
     }
 }
 function serve(id) {
+    if (!(id in components)) {
+        served(id)
+        return;
+    }
     let handler, args;
     handler = requestQueue[id][0][0]
     args = requestQueue[id][0][1]
@@ -107,6 +119,14 @@ function handle_response(element) {
                 return to
             },
             onBeforeNodeDiscarded: (node) => {
+                if (node.nodeType != Node.ELEMENT_NODE || !node.hasAttribute("wire:id"))
+                    return true
+                for (let listener of listeners[components[node.getAttribute("wire:id")].name]) {
+                    let idx = eventListenersLists[listener].indexOf(node)
+
+                    eventListenersLists[listener].splice(idx, 1)
+                }
+                delete components[node.getAttribute("wire:id")]
                 return true
             },
             onNodeAdded: (node) => {
@@ -288,7 +308,7 @@ function htmlDecode(input) {
 }
 
 
-function setEventListeners(el, enclosing_root) {
+function addToEventListenersLists(el, enclosing_root) {
     if (el.getAttribute('wire:id') == null)
         return
     let element_data = (htmlDecode(el.getAttribute('wire:initial-data')))
@@ -298,23 +318,46 @@ function setEventListeners(el, enclosing_root) {
         return
     let component_listeners = listeners[component_name]
     for (let i = 0; i < component_listeners.length; i++) {
-        document.addEventListener(component_listeners[i], executeHandlerOntime(function (ev) {
-            let value = ev.detail.name
-            let args = ev.detail.args
-            let payload = createEventTriggerPayload(enclosing_root, value, args)
-            let id = enclosing_root.getAttribute("wire:id")
-            sendAjax(id, payload, handle_response(enclosing_root))
-        }, enclosing_root.getAttribute("wire:id")))
+        if (!(component_listeners[i] in eventListenersLists))
+            eventListenersLists[component_listeners[i]] = []
+        eventListenersLists[component_listeners[i]].push(el)
+
+        // document.addEventListener(component_listeners[i], executeHandlerOntime(function (ev) {
+        //     let value = ev.detail.name
+        //     let args = ev.detail.args
+        //     let payload = createEventTriggerPayload(enclosing_root, value, args)
+        //     let id = enclosing_root.getAttribute("wire:id")
+        //     sendAjax(id, payload, handle_response(enclosing_root))
+        // }, enclosing_root.getAttribute("wire:id")))
     }
 }
 
+function fireEventOnElement(el, ev) {
+    let value = ev.detail.name
+    let args = ev.detail.args
+    let payload = createEventTriggerPayload(el, value, args)
+    let id = el.getAttribute("wire:id")
+    sendAjax(id, payload, handle_response(el))
+}
+
+function setUpEventListeners() {
+    for (let event in eventListenersLists) {
+        // console.log(event)
+        document.addEventListener(event, (ev) => {
+            if (!(event in eventListenersLists))
+                return
+            for (let el of eventListenersLists[event]) {
+                appendHandler(el.getAttribute("wire:id"), fireEventOnElement, el, ev)
+            }
+        })
+    }
+}
 function initializeComponent(el, enclosing_root) {
     if (el.getAttribute('wire:id') == null)
         return
     let id = el.getAttribute("wire:id");
     let element_data = (htmlDecode(el.getAttribute('wire:initial-data')))
     let parsed = JSON.parse(element_data)
-    // console.log(parsed)
     let component = new Component(id, parsed)
     components[id] = component
 }
@@ -341,7 +384,7 @@ function $set(prop, val) {
     sendSyncRequest(enclosing_root, prop, val)
 }
 function walkWireProps(el, enclosing_root) {
-    setEventListeners(el, enclosing_root)
+    addToEventListenersLists(el, enclosing_root)
     initializeComponent(el, enclosing_root)
     for (var i = 0; i < el.attributes.length; i++) {
         var attrib = el.attributes[i];

@@ -13,7 +13,7 @@ _outside_re = re.compile(r"\\?(gettext|_)\(")
 _inside_re = re.compile(r"\\?[()]")
 
 
-class InlineGettext(Extension):
+class PreprocessPylivewireCalls(Extension):
     """This extension implements support for inline gettext blocks::
 
         <h1>_(Welcome)</h1>

@@ -9,11 +9,9 @@ from glob import glob
 import os
 import json
 import pickle
-from .session import load_from_session, clear_session, session_hack
 import ast
 from .errors import ValidationError
 from .events import get_events, clear_events
-from .debug import print_component, print_component_from_string
 from jinja2 import Undefined
 
 models = dict()
@@ -32,10 +30,6 @@ def load_models(root_dir):
                 model_class = c[1]
         if model_class is not None:
             models[model_class.__name__] = model_class
-
-
-def generate_id():
-    return str(uuid.uuid4())
 
 
 def dummy_component_element(data, key):
@@ -87,18 +81,6 @@ def pylivewirecaller(*args, **kwargs):
     return res
 
 
-def load(component, **kwargs):
-    component_class = models[component]
-    component_obj = component_class(id, flask_app=flask_app, **kwargs)
-    return component_obj.render_annotated()
-
-
-def load_component_object(component, id=None, **kwargs):
-    component_class = models[component]
-    component_obj = component_class(id, flask_app=flask_app, **kwargs)
-    return component_obj
-
-
 def scripts():
     listeners = {}
     for name in models:
@@ -125,7 +107,6 @@ def register_syncer(app):
     def handle(component_id):
         global flask_app
         clear_events()
-        clear_session()
         type_ = request.json["type"]
         data = request.json["json"]
         component_data = request.json["oldData"]
@@ -178,7 +159,7 @@ def init_pylivewire(app, root_dir):
     flask_app = app
     register_syncer(app)
     load_models(root_dir)
-    app.jinja_env.add_extension("pylivewire.preprocessor.InlineGettext")
+    app.jinja_env.add_extension("pylivewire.preprocessor.PreprocessPylivewireCalls")
 
     @app.context_processor
     def inject_user():

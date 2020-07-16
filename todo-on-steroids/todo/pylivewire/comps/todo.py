@@ -16,7 +16,6 @@ class TODOList(Component):
     filter = "all"
     items = []
     items_id = []
-    displayed = []
     toggled = []
     user_id = -1
 
@@ -37,12 +36,10 @@ class TODOList(Component):
         self.items = []
         self.items_id = []
         self.toggled = []
-        self.displayed = []
         for todo in todos:
             self.items.append(todo.content)
             self.items_id.append(str(todo.id))
             self.toggled.append(todo.done)
-            self.displayed.append(True)
 
     def add_item(self):
         self.validate({"toadd": {"check_with": fancy_validate_toadd, "maxlength": 50}})

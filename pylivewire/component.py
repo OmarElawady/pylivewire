@@ -2,7 +2,6 @@ import json
 import os
 from .helpers import jsonify, is_jsonable, from_json
 import pickle
-from .session import load_from_session, is_loaded, is_visited
 from cerberus import Validator
 from flask import render_template
 from .errors import ValidationError
