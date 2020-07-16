@@ -107,6 +107,25 @@ Currently, there're three interesting actions that triggers a request from a com
 
 The only method to pass data between components is events.
 
+It would be interesting to know how to implement an appropriate concurrency control method to be both simple to use and provide high concurrency level. Currently, the requests for the same component are synchronous and is asynchronous otherwire. It's useful to note that any component action is done by sending a request to the server from the clientt. So firing events from the backend using `self.emit("event_name")` registers this event to be fired when the response payload is received. This means that the side effects of the events are not immediately seen by the components but rather it must take a round trip first. This might produce unexpected behaviour for something like this:
+
+```
+class UserComponent(Component):
+  listeners=["change_user_type"]
+  username=""
+  password=""
+  is_admin=False
+  
+  def chane_user_type(self, user_type):
+    self.is_admin = user_type
+
+  def render(self):
+    self.is_admin = True
+    self.emit("change_user_type", False)
+    print(self.is_admin) # prints True as the emit call just registers the event to be fired later
+    return self.render_template("user_view.html")
+```
+
 #### Request payload:
 
 The request payload is a json object consisting of the following fields:
@@ -128,6 +147,7 @@ updateData: {
 callMethod: {
 
   methodName: method_name,
+
   args: [] // list of args, not implemented!
 
 }
@@ -135,6 +155,7 @@ callMethod: {
 fireEvent: {
 
   event: event_name,
+
   args = []
 
 }
