@@ -1,11 +1,14 @@
 export { WiredElement }
 import { debounce, toCamelCase } from "./utils.js"
+import { Attribute } from "./attribute.js"
+
 class WiredElement {
     constructor(component, element) {
         this.element = element
         this.component = component
         this.modelled = false
         this.listeners = []
+        this.attrs = {}
         this.init()
     }
 
@@ -14,23 +17,44 @@ class WiredElement {
         this.addIfModelled()
         this.initBackendIfModelled()
         this.addEventListeners()
+        this.addPolling()
     }
 
     addIfModelled() {
-        if (!this.modelled)
+        if (!("model" in this.attrs))
             return
-        let event = "lazy" in this.modifiers && this.modifiers["lazy"] == true ? "change" : "input"
-
-        let debounceInterval = "debounce" in this.modifiers ? this.modifiers["debounce"] : 0
-        let debouncedventListener = debounce(this.eventListener.bind(this), debounceInterval)
-        this.element.addEventListener(event, debouncedventListener)
-        this.listeners.push({ event: event, handler: debouncedventListener })
+        if (this.element.type == "file")
+            this.addFileModel()
+        else
+            this.addInputModel()
         this.element.WiredElementObject = this
     }
 
+    addFileModel() {
+        let handler = this.uploadFile.bind(this)
+        let event = this.attrs["model"].getModifier("lazy") === true ? "change" : "input"
+        this.element.addEventListener(event, handler)
+        this.listeners.push({ event: event, handler: handler })
+    }
+
+    addInputModel() {
+        let event = this.attrs["model"].getModifier("lazy") === true ? "change" : "input"
+
+        let debounceInterval = this.attrs["model"].getModifier("debounce") || 0
+        let debouncedventListener = debounce(this.eventListener.bind(this), debounceInterval)
+        this.element.addEventListener(event, debouncedventListener)
+        this.listeners.push({ event: event, handler: debouncedventListener })
+    }
+
+    addPolling() {
+        if (!("polling" in this.attrs))
+            return
+        let pollingInterval = this.attrs["polling"].getModifier("interval") || 10
+        console.log(this.attrs["polling"])
+        setInterval(this.component.refresh.bind(this.component), pollingInterval * 1000)
+    }
+
     initBackendIfModelled() {
-        // if (!this.modelled)
-        //     this.component.updateValue(this.fieldName, this.element.value)
     }
 
     addLiveWireEventListener(key) {
@@ -98,32 +122,37 @@ class WiredElement {
     initFieldNameAndModifiers() {
         for (var i = 0; i < this.element.attributes.length; i++) {
             var attrib = this.element.attributes[i];
-            if (attrib.name.startsWith("wire:model")) {
-                this.fieldName = attrib.value
-                this.attrName = attrib.name
-                this.modifiers = this.getModifiers(attrib.name.slice("wire:model".length))
-                this.modelled = true
+            if (attrib.name.startsWith("wire:")) {
+                let attr = (new Attribute(attrib.name))
+                this.attrs[attr.getStrippedName()] = attr
             }
+            // if (attrib.name.startsWith("wire:model")) {
+            //     this.fieldName = attrib.value
+            //     this.attrName = attrib.name
+            //     this.modifiers = this.getModifiers(attrib.name.slice("wire:model".length))
+            //     this.modelled = true
+            // }
         }
+        // console.log(this.attrs)
     }
 
-    getModifiers(mods) {
-        let bools = ["lazy"]
-        let ints = ["debounce"]
-        let result = {
-        }
-        let splitted = mods.split('.')
-        for (let i = 0; i < splitted.length; i++) {
-            if (splitted[i] in bools) {
-                result[[splitted[i]]] = true;
-            } else if (splitted[i] in ints) {
-                result[splitted[i]] = int(splitted[i + 1])
-                i += 1
-            }
-        }
-        return result
-        // this.result = result
-    }
+    // getModifiers(mods) {
+    //     let bools = ["lazy"]
+    //     let ints = ["debounce"]
+    //     let result = {
+    //     }
+    //     let splitted = mods.split('.')
+    //     for (let i = 0; i < splitted.length; i++) {
+    //         if (splitted[i] in bools) {
+    //             result[[splitted[i]]] = true;
+    //         } else if (splitted[i] in ints) {
+    //             result[splitted[i]] = int(splitted[i + 1])
+    //             i += 1
+    //         }
+    //     }
+    //     return result
+    //     // this.result = result
+    // }
 
     updateElement() {
         for (let listener of this.listeners)
@@ -133,7 +162,17 @@ class WiredElement {
     }
 
     updateValue() {
-        this.component.updateValue(this.fieldName, this.element.value)
+        this.component.updateValue(this.attrs["model"].getValue(this.element), this.element.value)
+    }
+
+    uploadFile(ev) {
+        this.component.uploadFile(ev.target.files[0], this.fileUploaded.bind(this))
+
+    }
+
+    fileUploaded(val) {
+        val = JSON.parse(val)
+        this.component.updateValue(this.attrs["model"].getValue(this.element), "livewire-tmp-file:" + val["filename"])
     }
 
     eventListener(ev) {

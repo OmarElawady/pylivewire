@@ -1,5 +1,5 @@
 import os
-from flask import Flask, render_template, render_template_string, request, redirect
+from flask import Flask, render_template, render_template_string, request, redirect, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, login_required, logout_user, current_user
 from .database import init_db
@@ -101,6 +101,9 @@ def member_page():
 def test():
     return render_template("test.html")
 
+@app.route('/photos/<path:path>')
+def send_photos(path):
+    return send_from_directory('photos', path)
 
 # Start development web server
 if __name__ == "__main__":

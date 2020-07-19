@@ -14,5 +14,6 @@ class User(db.Model, UserMixin):
     # User information
     first_name = db.Column(db.String(100, collation="NOCASE"), nullable=False, server_default="")
     last_name = db.Column(db.String(100, collation="NOCASE"), nullable=False, server_default="")
-
+    
     is_admin = db.Column(db.Boolean(), nullable=False, default=False)
+    photo = db.Column(db.String(), nullable=False, default="https://gravatar.com/avatar/2c6e37e56828d59b5716a91eea7c8d77?s=200&d=robohash&r=x")

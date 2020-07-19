@@ -10,7 +10,7 @@ from .events import add_event
 import uuid
 from jinja2 import environment
 from copy import deepcopy
-
+from .upload import File
 
 class Component:
     id = ""
@@ -19,6 +19,7 @@ class Component:
     def __init__(self, **kwargs):
         self.key = str(kwargs["_key"])
         self.id = self.generate_random_id()
+        self._flask_app = kwargs["_flask_app"]
         self._jinja_env = kwargs["_flask_app"].jinja_env
         self.fill_data(kwargs)
         _, filename = os.path.split(__file__)
@@ -35,11 +36,18 @@ class Component:
             if k not in self.__dict__ and not callable(v):
                 setattr(self, k, deepcopy(v))
                 # print(k)
+    
+    def get_value(self, v):
+            if type(v) == str and v.startswith("livewire-tmp-file:"):
+                return File(v, self._flask_app)
+            else:
+                return v
 
     def fill_data(self, data):
         for k, v in data.items():
-            setattr(self, k, v)
+            setattr(self, k, self.get_value(v))
 
+            
     def generate_random_id(self):
         return str(uuid.uuid4())
 
@@ -56,13 +64,14 @@ class Component:
         return self._previously_rendered_children[item_key]
 
     def to_json(self):
-        data_dict = {k: v for k, v in self.__dict__.items() if not k.startswith("_")}
-        return data_dict
-        for i in dir(self):
-            attr = getattr(self, i)
-            if not i.startswith("__") and is_jsonable(attr):
-                jsonfied = jsonify(attr)
-                data_dict[i] = jsonfied
+        data_dict = {}
+        for k, v in self.__dict__.items():
+            if k.startswith('_'):
+                continue
+            if isinstance(v, File):
+                data_dict[k] = v.to_json()
+            else:
+                data_dict[k] = v
         return data_dict
 
     @classmethod
@@ -87,9 +96,10 @@ class Component:
             updating_method = f"updating_{k}"
             updated_method = f"updated_{k}"
             item_cls = type(getattr(self, k))
-            assigned_value = from_json(item_cls, v)
+            assigned_value = v
             if self._call_if_exists(updating_method, k, assigned_value):
-                setattr(self, k, assigned_value)
+                setattr(self, k, self.get_value(assigned_value))
+
             self._call_if_exists(updated_method, k, assigned_value)
 
     def _call_if_exists(self, method_name, k, v):
@@ -105,6 +115,7 @@ class Component:
                 pos = i
                 break
         initial_data = self.get_initial_data()
+        # print(initial_data)
         initial_data_str = html.escape(json.dumps(initial_data))
         result = (
             html_code[0:pos]
@@ -158,4 +169,7 @@ class Component:
         pass
 
     def hydrate(self):
+        pass
+    
+    def refresh(self):
         pass

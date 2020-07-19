@@ -1,4 +1,10 @@
-<section class="todoapp">
+<section class="todoapp" wire:polling.interval.1>
+    <div>
+        <label for="upload">
+            <img style="width:50px;height:50px" src="{{ avatarURL }}?rand={{ now() }}" />
+            <input wire:model="photo" type="file" id="upload" style="display:none">
+        </label>
+    </div>
     <header class="header">
         <h1>todos</h1>
         <input class="new-todo" placeholder="What needs to be done?" wire:model="toadd"
@@ -35,5 +41,6 @@
             </li>
         </ul>
         <button class="clear-completed" wire:click="clear_completed">Clear completed</button>
+    </footer>
     </footer>
 </section>

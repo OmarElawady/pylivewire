@@ -1,4 +1,4 @@
-export { debounce, sendAjax, walkDom, htmlDecode, toCamelCase }
+export { debounce, sendAjax, walkDom, htmlDecode, toCamelCase, uploadFile }
 const debounce = (func, wait) => {
     let timeout
 
@@ -11,6 +11,28 @@ const debounce = (func, wait) => {
         clearTimeout(timeout)
         timeout = setTimeout(later, wait)
     }
+}
+
+function uploadFile(file, callbacks) {
+    let xmlhttp = new XMLHttpRequest();
+
+    xmlhttp.onreadystatechange = function () {
+        if (xmlhttp.readyState == XMLHttpRequest.DONE) {   // XMLHttpRequest.DONE == 4
+            if (xmlhttp.status == 200) {
+                // active_events.delete(id)
+                for (let callback of callbacks) {
+                    callback(xmlhttp.responseText);
+                }
+            }
+        }
+    };
+
+    xmlhttp.open("POST", "/livewire/upload-file", true);
+    var formData = new FormData();
+    formData.append('file', file, file.name);
+    // xmlhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xmlhttp.send(formData);
+
 }
 
 function sendAjax(id, payload, callbacks) {
@@ -29,8 +51,6 @@ function sendAjax(id, payload, callbacks) {
 
     xmlhttp.open("POST", "/livewire/sync/" + id, true);
     xmlhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    // console.log(payload)
-    // console.log(JSON.parse(payload.payloadJSON()))
     xmlhttp.send(payload.payloadJSON());
 }
 

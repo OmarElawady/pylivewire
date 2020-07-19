@@ -1,5 +1,5 @@
 export { Component }
-import { htmlDecode, sendAjax } from "./utils.js"
+import { htmlDecode, sendAjax, uploadFile } from "./utils.js"
 import { WiredElement } from "./wired_element.js"
 import { SyncPayload } from "./payload/sync_payload.js"
 import { EventPayload } from "./payload/event_payload.js"
@@ -12,6 +12,7 @@ class Component {
         this.eventDispatcher = eventDispatcher
         this.componentRegistry = componentRegistry
         this.id = this.element.getAttribute("wire:id")
+        new WiredElement(this, this.element)
         this.init()
     }
 
@@ -115,6 +116,13 @@ class Component {
         this.sendRequest(new MethodPayload(this, methodCall), doneCallback)
     }
 
+    sendMethodRequest(methodCall, doneCallback) {
+        this.sendRequest(new MethodPayload(this, methodCall), doneCallback)
+    }
+    sendFile(file, callback, doneCallback) {
+        uploadFile(file, [callback, doneCallback])
+
+    }
     /* -------------------------------------------------- */
 
     /* Component action triggers */
@@ -135,6 +143,12 @@ class Component {
         this.taskScheduler.addTask(this.id, this.sendMethodRequest, methodCall)
     }
 
+    uploadFile(file, callback) {
+        this.taskScheduler.addTask(this.id, this.sendFile, file, callback)
+    }
+    refresh() {
+        this.callMethod("refresh")
+    }
     /* -------------------------------------------------- */
 
     /* processing response */
@@ -189,6 +203,21 @@ class Component {
             this.eventDispatcher.fireEvent(event["event"], ...event["args"])
         }
     }
+    updateDirtyInputs(el, dirtyInputs) {
+        if (el.hasAttribute("wire:id") && el.getAttribute("wire:id") != this.element.getAttribute("wire:id"))
+            return
+        if (el.hasAttribute("wire:model")) {
+            let model = el.getAttribute("wire:model")
+            if (dirtyInputs.indexOf(model) != -1) {
+                el.value = this.data[model]
+            }
+        }
+        el = el.firstElementChild
+        while (el) {
+            this.updateDirtyInputs(el, dirtyInputs)
+            el = el.nextElementSibling;
+        }
+    }
 
     processResponse(response) {
         response = JSON.parse(response)
@@ -197,6 +226,7 @@ class Component {
         this.renderedChildren = response["renderedChildren"]
         this.update_dom(newDOM)
         this.dispatchEvents(response["dispatchEvents"])
+        this.updateDirtyInputs(this.element, response["dirtyInputs"])
         if (response["redirect"])
             window.location = response["redirect"]
     }

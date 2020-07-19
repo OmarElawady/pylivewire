@@ -153,6 +153,18 @@ def register_syncer(app):
         }
         return json.dumps(response_data)
 
+    @app.route("/livewire/upload-file", methods=["POST"])
+    def upload_file():
+        file_name = str(uuid.uuid4())
+        f = request.files['file']
+        ext = f.filename.split('.')[-1]
+        dst = file_name + "." + ext
+        f.save(os.path.join(app.config["WIRE_TMP_UPLOAD_DIR"], dst))
+        return json.dumps({
+            "filename": dst
+        })
+
+
 
 def init_pylivewire(app, root_dir):
     global render_template, flask_app
@@ -160,7 +172,7 @@ def init_pylivewire(app, root_dir):
     register_syncer(app)
     load_models(root_dir)
     app.jinja_env.add_extension("pylivewire.preprocessor.PreprocessPylivewireCalls")
-
+    app.config["WIRE_TMP_UPLOAD_DIR"] = "/tmp"
     @app.context_processor
     def inject_user():
         return dict(pylivewirecaller=pylivewirecaller, app=app, pylivewire=sys.modules[__name__])

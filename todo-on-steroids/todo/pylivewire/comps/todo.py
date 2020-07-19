@@ -1,8 +1,8 @@
 from pylivewire import Component
-from todo.models import Todo
+from todo.models import Todo, User
 from flask_login import current_user
 from todo import db
-
+from time import time
 
 def fancy_validate_toadd(field, toadd, error):
     l = len(toadd)
@@ -18,13 +18,23 @@ class TODOList(Component):
     items_id = []
     toggled = []
     user_id = -1
-
+    photo = ""
+    avatarURL = "https://gravatar.com/avatar/2c6e37e56828d59b5716a91eea7c8d77?s=200&d=robohash&r=x"
+    
     def mount(self, *args, **kwargs):
         if self.user_id == -1:
             self.user_id = current_user.id
         self.populate_from_db()
 
-
+    def updated_photo(self, **kwars):
+        ext = self.photo.get_ext()
+        path = f"photos/{self.user_id}.{ext}"
+        self.photo.save(path)
+        self.avatarURL = path
+        user = db.session.query(User).filter(User.id == self.user_id).first()
+        user.photo = path
+        db.session.commit()
+    
     def updated_toadd(self, **kwargs):
         self.validate({"toadd": {"check_with": fancy_validate_toadd, "maxlength": 50}})
 
@@ -36,6 +46,7 @@ class TODOList(Component):
         self.items = []
         self.items_id = []
         self.toggled = []
+        self.avatarURL = db.session.query(User).filter(User.id == self.user_id).first().photo
         for todo in todos:
             self.items.append(todo.content)
             self.items_id.append(str(todo.id))
@@ -123,4 +134,5 @@ class TODOList(Component):
             empty=empty,
             first_name=current_user.first_name,
             last_name=current_user.last_name,
+            now=time
         )
