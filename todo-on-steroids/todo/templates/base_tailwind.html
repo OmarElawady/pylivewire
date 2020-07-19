@@ -11,8 +11,8 @@
 <body class="w-screen flex justify-center">
     {% block content %}{% endblock %}
     {{ pylivewire.scripts()|safe }}
-    <script src="{{url_for('static', filename='component.js')}}" defer></script>
-    <script src="{{url_for('static', filename='pylivewire.js')}}" defer></script>
+    <!-- <script src="{{url_for('static', filename='component.js')}}" defer></script> -->
+    <script type="module" src="{{url_for('static', filename='pylivewire.js')}}" defer></script>
 </body>
 
 </html>

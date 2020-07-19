@@ -46,8 +46,8 @@
     {{ pylivewirecaller("Notification")|safe }}
 
     {{pylivewire.scripts()|safe}}
-    <script src="{{url_for('static', filename='component.js')}}" defer></script>
-    <script src="{{url_for('static', filename='pylivewire.js')}}" defer></script>
+    <!-- <script src="{{url_for('static', filename='component.js')}}" defer></script> -->
+    <script type="module" src="{{url_for('static', filename='pylivewire.js')}}" defer></script>
     <div>
         Lorem ipsum dolor sit amet consectetur adipisicing elit. Aliquid perferendis dolor eos mollitia, itaque rem,
         natus quidem tempora blanditiis nesciunt in corrupti, illum sit iure ex nisi sequi ullam doloremque.
