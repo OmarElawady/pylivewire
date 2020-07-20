@@ -22,6 +22,7 @@ class WiredElement {
         this.addEventListeners()
         this.addPolling()
         this.addLoadingState()
+        this.addOfflineState()
     }
 
     hasAttribute(attr) {
@@ -77,6 +78,13 @@ class WiredElement {
         let pollingInterval = this.getAttributeObject("polling").getModifier("interval") || 10
         // console.log(this.getAttributeObject("polling"))
         setInterval(this.component.refresh.bind(this.component), pollingInterval * 1000)
+    }
+
+    addOfflineState() {
+        if (this.hasAttribute("offline")) {
+            this.hideElement()
+            window.addEventListener('offline', this.showElement.bind(this));
+        }
     }
     /* loading state */
     addLoadingState() {
