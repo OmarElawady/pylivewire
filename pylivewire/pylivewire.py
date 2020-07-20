@@ -35,7 +35,7 @@ def load_models(root_dir):
 def dummy_component_element(data, key):
     tag = data["tag"]
     id = data["id"]
-    return f'<{tag} wire:id="{id}" wire:key="{key}" ignore></{tag}>'
+    return f'<{tag} wire:id="{id}" wire:key="{key}"></{tag}>'
 
 
 def get_tag(html):
