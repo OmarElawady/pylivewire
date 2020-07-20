@@ -5,7 +5,9 @@ class ComponentRegistry {
 
         }
     }
-
+    getComponents() {
+        return this.components.values()
+    }
     getComponentById(id) {
         return this.components[id]
     }
@@ -16,5 +18,6 @@ class ComponentRegistry {
     }
     addComponent(component) {
         this.components[component.getID()] = component
+        component.postInit()
     }
 }

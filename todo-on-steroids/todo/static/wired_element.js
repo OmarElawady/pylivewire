@@ -83,7 +83,9 @@ class WiredElement {
     addOfflineState() {
         if (this.hasAttribute("offline")) {
             this.hideElement()
-            window.addEventListener('offline', this.showElement.bind(this));
+            window.addEventListener('offline', this.showElement.bind(this))
+            window.addEventListener('online', this.hideElement.bind(this))
+            this.element.setAttribute("wire:ignore", "")
         }
     }
     /* loading state */

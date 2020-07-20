@@ -7,7 +7,6 @@ let componentRegistry = new ComponentRegistry()
 let eventDispatcher = new EventDispatcher(listeners)
 let taskScheduler = new TaskScheduler(componentRegistry)
 walkDOM(document.body)
-
 function walkDOM(element) {
     if (element.hasAttribute("wire:id")) {
         componentRegistry.addComponent(new Component(element, taskScheduler, eventDispatcher, componentRegistry))
@@ -20,7 +19,6 @@ function walkDOM(element) {
         element = element.nextElementSibling
     }
 }
-
 // active_events = new Set()
 // components = {}
 

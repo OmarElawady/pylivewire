@@ -35,6 +35,9 @@ class TODOList(Component):
         user.photo = path
         db.session.commit()
     
+    def say(self):
+        self.toadd = "Hello world"
+
     def updated_toadd(self, **kwargs):
         self.validate({"toadd": {"check_with": fancy_validate_toadd, "maxlength": 50}})
 

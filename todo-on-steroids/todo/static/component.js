@@ -37,6 +37,24 @@ class Component {
         this.eventDispatcher.registerComponent(this)
     }
 
+    postInit() {
+        let we = this.element.WiredElementObject
+        if (we.hasAttribute("init")) {
+            console.log(we.getValue(), this.data[we.getAttribute("model")])
+            this.callMethod(we.getAttribute("init"))
+        }
+        this.backSyncModels(this.element)
+    }
+    backSyncModels(element) {
+        let we = element.WiredElementObject
+        if (we.hasAttribute("model") && we.getValue() != this.data[we.getAttribute("model")])
+            we.updateValue()
+        element = element.firstElementChild
+        while (element) {
+            this.backSyncModels(element)
+            element = element.nextElementSibling
+        }
+    }
     initWalk(element) {
         if (this.element != element) {
             if (element.hasAttribute("wire:id")) {
