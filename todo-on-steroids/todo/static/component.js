@@ -32,6 +32,7 @@ class Component {
         this.renderedChildren = this.component_data["renderedChildren"]
         this.childrenComponents = []
         this.loadingStateListeners = {}
+        this.prefetched = {}
         this.loadingStateActivations = { "": 0 }
         this.initWalk(this.element)
         this.eventDispatcher.registerComponent(this)
@@ -171,7 +172,11 @@ class Component {
     /* request sending */
     sendRequest(payload, ...callbacks) {
         sendAjax(this.id, payload, [this.processResponse.bind(this)].concat(callbacks))
+        this.prefetched = {}
+    }
 
+    sendPrefetchRequest(payload, ...callbacks) {
+        sendAjax(this.id, payload, callbacks)
     }
 
     sendSyncRequest(field, value, doneCallback) {
@@ -186,8 +191,21 @@ class Component {
     }
 
     sendMethodRequest(methodCall, doneCallback) {
-        this.activateTarget(methodCall)
-        this.sendRequest(new MethodPayload(this, methodCall), doneCallback, this.deactivator(methodCall))
+        if (methodCall in this.prefetched) {
+            doneCallback(this.prefetched[methodCall])
+            this.processResponse(this.prefetched[methodCall])
+            delete this.prefetched[methodCall]
+        } else {
+            this.activateTarget(methodCall)
+            this.sendRequest(new MethodPayload(this, methodCall), doneCallback, this.deactivator(methodCall))
+        }
+    }
+
+    sendMethodPrefetchRequest(methodCall, doneCallback) {
+        let handler = ((val) => {
+            this.prefetched[methodCall] = val
+        }).bind(this)
+        this.sendPrefetchRequest(new MethodPayload(this, methodCall), doneCallback, handler)
     }
 
     sendFile(file, callback, doneCallback) {
@@ -216,6 +234,10 @@ class Component {
 
     callMethod(methodCall) {
         this.addTask(this.sendMethodRequest, methodCall)
+    }
+
+    prefetchCallMethod(methodCall) {
+        this.addTask(this.sendMethodPrefetchRequest, methodCall)
     }
 
     uploadFile(file, callback) {

@@ -20,11 +20,17 @@ class TODOList(Component):
     user_id = -1
     photo = ""
     avatarURL = "https://gravatar.com/avatar/2c6e37e56828d59b5716a91eea7c8d77?s=200&d=robohash&r=x"
-    
+    title_suffix = ""
     def mount(self, *args, **kwargs):
         if self.user_id == -1:
             self.user_id = current_user.id
         self.populate_from_db()
+    def toggle_title(self):
+        if self.title_suffix == "":
+            self.title_suffix = " Toggled"
+        else:
+            self.title_suffix = ""
+        print(self.title_suffix)
 
     def updated_photo(self, **kwars):
         ext = self.photo.get_ext()

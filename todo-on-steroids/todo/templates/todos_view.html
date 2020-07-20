@@ -39,10 +39,11 @@
             <input wire:model="photo" type="file" id="upload" style="display:none">
         </label>
     </div>
+
     <header class="header">
-        <h1>todos</h1>
-        <input class="new-todo" placeholder="What needs to be done?" wire:model="toadd"
-            wire:keydown.enter.prevent.stop="add_item" autofocus>
+        <h1>todos {{ title_suffix }} </h1>
+        <input wire:click.prefetch="toggle_title" class="new-todo" placeholder="What needs to be done?"
+            wire:model="toadd" wire:keydown.enter.prevent.stop="add_item" autofocus>
         {% if 'toadd' in errors %}
         <span style='color:red;font-size:13;'>* {{errors['toadd'][0]}}</span>
         {% endif %}

@@ -160,6 +160,7 @@ class WiredElement {
         let event = props[0]
         let stopPropagation = props.indexOf("stop") != -1
         let preventDefault = props.indexOf("prevent") != -1
+        let prefetch = props.indexOf("prefetch") != -1
         let self = props.indexOf("self") != -1
         let isDebounce = props.indexOf("debounce") != -1
         let debounceInterval = isDebounce ? props[props.indexOf("debounce") + 1] : -1
@@ -175,6 +176,21 @@ class WiredElement {
                 listen_to.push(camelCase)
             }
         }
+        let prefetchedResponse = undefined
+        function prefetchHandler(ev) {
+            if (self && ev.target != this.element) return false
+            if (key_specified && listen_to.indexOf(ev.key) == -1)
+                return false
+            if (preventDefault)
+                ev.preventDefault()
+            if (stopPropagation)
+                ev.stopPropagation()
+            let value = this.element.getAttribute("wire:" + key)
+            if (value[0] != '$') {
+                this.component.prefetchCallMethod(value)
+            }
+        }
+
         function handler(ev) {
             if (self && ev.target != this.element) return false
             if (key_specified && listen_to.indexOf(ev.key) == -1)
@@ -194,7 +210,12 @@ class WiredElement {
         if (isDebounce)
             handler = this.component.debounce(handler, debounceInterval)
         handler = handler.bind(this)
-        this.listeners.push(handler)
+        prefetchHandler = prefetchHandler.bind(this)
+        this.listeners.push({ event: event, handler: handler })
+        if (prefetch) {
+            this.element.addEventListener("mouseover", prefetchHandler)
+            this.listeners.push({ event: "mouseover", handler: prefetchHandler })
+        }
         this.element.addEventListener(event, handler)
     }
 
