@@ -5,10 +5,11 @@ from flask_login import LoginManager, login_required, logout_user, current_user
 from .database import init_db
 from .config import ConfigClass
 import pylivewire
-
+from flask_turbolinks import turbolinks
 # Create Flask app load app.config
 app = Flask(__name__)
 app.config.from_object(__name__ + ".ConfigClass")
+turbolinks(app)
 
 # Initialize Flask-SQLAlchemy
 db = SQLAlchemy(app)
@@ -73,7 +74,6 @@ def login_page():
 def logout():
     logout_user()
     return redirect("/login")
-
 
 # The register page is accessible to anyone
 @app.route("/register")

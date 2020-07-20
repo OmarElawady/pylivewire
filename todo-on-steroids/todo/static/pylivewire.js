@@ -2,21 +2,28 @@ import { Component } from "./component.js"
 import { ComponentRegistry } from "./component_registry.js"
 import { EventDispatcher } from "./event_dispatcher.js"
 import { TaskScheduler } from "./task_scheduler.js"
-
-let componentRegistry = new ComponentRegistry()
-let eventDispatcher = new EventDispatcher(listeners)
-let taskScheduler = new TaskScheduler(componentRegistry)
-walkDOM(document.body)
-function walkDOM(element) {
-    if (element.hasAttribute("wire:id")) {
-        componentRegistry.addComponent(new Component(element, taskScheduler, eventDispatcher, componentRegistry))
-        return
-    }
-    element = element.firstElementChild
-    // console.log(element)
-    while (element) {
-        walkDOM(element)
-        element = element.nextElementSibling
+if (typeof Turbolinks === 'object') {
+    document.addEventListener("turbolinks:render", init)
+} else {
+    document.addEventListener("load", init)
+}
+init()
+function init() {
+    let componentRegistry = new ComponentRegistry()
+    let eventDispatcher = new EventDispatcher(listeners)
+    let taskScheduler = new TaskScheduler(componentRegistry)
+    walkDOM(document.body)
+    function walkDOM(element) {
+        if (element.hasAttribute("wire:id")) {
+            componentRegistry.addComponent(new Component(element, taskScheduler, eventDispatcher, componentRegistry))
+            return
+        }
+        element = element.firstElementChild
+        // console.log(element)
+        while (element) {
+            walkDOM(element)
+            element = element.nextElementSibling
+        }
     }
 }
 // active_events = new Set()
