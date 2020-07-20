@@ -237,6 +237,8 @@ class Component {
     }
 
     prefetchCallMethod(methodCall) {
+        if (methodCall in this.prefetched)
+            return
         this.addTask(this.sendMethodPrefetchRequest, methodCall)
     }
 

@@ -98,56 +98,57 @@ class WiredElement {
             target = this.getAttribute(target)
         targets = targets.split(',')
         targets = targets.map(x => x.trim())
-        let loadingActions = this.getAttributeObjectList("loading")
-        for (let loadingAction of loadingActions) {
-            this.addLoadingAction(loadingAction, targets)
+        // let loadingActions = this.getAttributeObjectList("loading")
+        for (let target of targets) {
+            this.component.listenOnTarget(target, this.activateLoadingStates.bind(this), this.deactivateLoadingStates.bind(this))
+            // this.addLoadingAction(loadingAction, targets)
         }
     }
 
-    addLoadingAction(loadingAction, targets) {
+    activateLoadingState(loadingAction) {
+        let val = loadingAction.getValue(this.element)
         let mods = loadingAction.getModifiers()
         if (Object.keys(mods).length === 0)
-            this.addShowLoadingAction(targets)
+            this.showElement()
         if ("remove" in mods)
-            this.addHideLoadingAction(targets)
+            this.hideElement()
         if (mods["class"] == "remove")
-            this.addClassRemoveAction(targets, loadingAction.getValue(this.element))
+            this.removeClass(val)
         if (mods["class"] == "add")
-            this.addClassAddAction(targets, loadingAction.getValue(this.element))
+            this.addClass(val)
         if (mods["attr"] == "remove")
-            this.addAttrRemoveAction(targets, loadingAction.getValue(this.element))
+            this.removeAttribute(val)
         if (mods["attr"] == "add")
-            this.addAttrAddAction(targets, loadingAction.getValue(this.element))
+            this.addAttribute(val)
     }
-
-    addForAllTargets(targets, act, deact) {
-        for (let target of targets) {
-            this.component.listenOnTarget(target, act, deact)
+    deactivateLoadingState(loadingAction) {
+        let val = loadingAction.getValue(this.element)
+        let mods = loadingAction.getModifiers()
+        if (Object.keys(mods).length === 0)
+            this.hideElement()
+        if ("remove" in mods)
+            this.showElement()
+        if (mods["class"] == "remove")
+            this.addClass(val)
+        if (mods["class"] == "add")
+            this.removeClass(val)
+        if (mods["attr"] == "remove")
+            this.addAttribute(val)
+        if (mods["attr"] == "add")
+            this.removeAttribute(val)
+    }
+    activateLoadingStates() {
+        let loadingActions = this.getAttributeObjectList("loading")
+        for (let loadingAction of loadingActions) {
+            this.activateLoadingState(loadingAction)
         }
     }
 
-    addShowLoadingAction(targets) {
-        this.element.style.display = "none"
-        this.addForAllTargets(targets, this.showElement.bind(this), this.hideElement.bind(this))
-    }
-    addHideLoadingAction(targets) {
-        this.addForAllTargets(targets, this.hideElement.bind(this), this.showElement.bind(this))
-    }
-
-    addClassRemoveAction(targets, val) {
-        this.addForAllTargets(targets, this.curry(this.removeClass, val), this.curry(this.addClass, val))
-    }
-
-    addClassAddAction(targets, val) {
-        this.addForAllTargets(targets, this.curry(this.addClass, val), this.curry(this.removeClass, val))
-    }
-
-    addAttrRemoveAction(targets, val) {
-        this.addForAllTargets(targets, this.curry(this.removeAttribute, val), this.curry(this.addAttribute, val))
-    }
-
-    addAttrAddAction(targets, val) {
-        this.addForAllTargets(targets, this.curry(this.addAttribute, val), this.curry(this.removeAttribute, val))
+    deactivateLoadingStates() {
+        let loadingActions = this.getAttributeObjectList("loading")
+        for (let loadingAction of loadingActions) {
+            this.deactivateLoadingState(loadingAction)
+        }
     }
 
 
