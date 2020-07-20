@@ -324,11 +324,16 @@ class Component {
         this.update_dom(newDOM)
         this.dispatchEvents(response["dispatchEvents"])
         this.updateDirtyInputs(this.element, response["dirtyInputs"])
-        if (response["redirect"])
-            window.location = response["redirect"]
+        if (response["redirect"]) {
+            try {
+                Turbolinks.visit(response["redirect"])
+            } catch{
+                window.location = response["redirect"]
+            }
+        }
     }
 
-
+    /* loading state events */
 
     listenOnTarget(target, activateCallback, deactivateCallback) {
         if (!(target in this.loadingStateListeners)) {
