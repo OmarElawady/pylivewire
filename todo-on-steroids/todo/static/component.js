@@ -25,16 +25,14 @@ class Component {
     }
 
     init() {
-        // console.log("Msa2 l fol")
         this.component_data = this.parseInitialData()
-        // console.log(this.component_data)
         this.eventDispatcher.registerComponent(this)
-        // console.log(component_data)
         this.data = this.component_data["data"]
         this.name = this.component_data["name"]
-        // console.log("sssssssssda", this.component_data)
         this.renderedChildren = this.component_data["renderedChildren"]
         this.childrenComponents = []
+        this.loadingStateListeners = {}
+        this.loadingStateActivations = { "": 0 }
         this.initWalk(this.element)
         this.eventDispatcher.registerComponent(this)
     }
@@ -95,16 +93,73 @@ class Component {
     }
 
     /* -------------------------------------------------- */
+    debounce(func, wait) {
+        let timeout
+        let active = false
+        let force = false
+        let that = this
+        let executedFunction = function (...args) {
+            const later = () => {
+                timeout = null
+                that.removeDebounceFunction(executedFunction)
+                active = force = false
+                func(...args)
+            }
+            clearTimeout(timeout)
+            if (!active) {
+                active = true
+                that.addDebounceFunction(executedFunction)
+            }
+            if (force)
+                later()
+            else
+                timeout = setTimeout(later, wait)
+        }
+        executedFunction.force = function (...args) {
+            force = true
+            executedFunction()
+        }
+        return executedFunction
+    }
+
+    addDebounceFunction(func) {
+        if (!this.debounceFunctionList)
+            this.debounceFunctionList = []
+        this.debounceFunctionList.push(func)
+    }
+
+    removeDebounceFunction(func) {
+        if (!this.debounceFunctionList)
+            this.debounceFunctionList = []
+        this.debounceFunctionList.splice(this.debounceFunctionList.indexOf(func), 1)
+    }
+
+    debounceAll() {
+        if (this.startedDisposing !== undefined)
+            return
+        this.startedDisposing = true
+        if (!this.debounceFunctionList)
+            this.debounceFunctionList = []
+        let cp = this.debounceFunctionList
+        for (let deb of cp) {
+            if (this.debounceFunctionList.indexOf(deb) === -1)
+                continue
+            deb.force()
+        }
+        this.startedDisposing = undefined
+
+    }
 
     /* request sending */
-    sendRequest(payload, doneCallback) {
-        sendAjax(this.id, payload, [this.processResponse.bind(this), doneCallback])
+    sendRequest(payload, ...callbacks) {
+        sendAjax(this.id, payload, [this.processResponse.bind(this)].concat(callbacks))
 
     }
 
     sendSyncRequest(field, value, doneCallback) {
+        this.activateTarget(field)
         // console.log(wiredElement)
-        this.sendRequest(new SyncPayload(this, field, value), doneCallback)
+        this.sendRequest(new SyncPayload(this, field, value), doneCallback, this.deactivator(field))
     }
 
     sendEventRequest(event, arglist, doneCallback) {
@@ -113,12 +168,10 @@ class Component {
     }
 
     sendMethodRequest(methodCall, doneCallback) {
-        this.sendRequest(new MethodPayload(this, methodCall), doneCallback)
+        this.activateTarget(methodCall)
+        this.sendRequest(new MethodPayload(this, methodCall), doneCallback, this.deactivator(methodCall))
     }
 
-    sendMethodRequest(methodCall, doneCallback) {
-        this.sendRequest(new MethodPayload(this, methodCall), doneCallback)
-    }
     sendFile(file, callback, doneCallback) {
         uploadFile(file, [callback, doneCallback])
 
@@ -130,21 +183,25 @@ class Component {
     $set(prop, val) {
         this.updateValue(prop, val)
     }
+    addTask(method, ...args) {
+        this.debounceAll()
+        this.taskScheduler.addTask(this.id, method, ...args)
 
+    }
     updateValue(field, value) {
-        this.taskScheduler.addTask(this.id, this.sendSyncRequest, field, value)
+        this.addTask(this.sendSyncRequest, field, value)
     }
 
     fireEvent(event, ...args) {
-        this.taskScheduler.addTask(this.id, this.sendEventRequest, event, args)
+        this.addTask(this.sendEventRequest, event, args)
     }
 
     callMethod(methodCall) {
-        this.taskScheduler.addTask(this.id, this.sendMethodRequest, methodCall)
+        this.addTask(this.sendMethodRequest, methodCall)
     }
 
     uploadFile(file, callback) {
-        this.taskScheduler.addTask(this.id, this.sendFile, file, callback)
+        this.addTask(this.sendFile, file, callback)
     }
     refresh() {
         this.callMethod("refresh")
@@ -176,7 +233,7 @@ class Component {
                         : node.id
             },
             onBeforeElUpdated: (from, to) => {
-                if (from.isEqualNode(to) || to.hasAttribute("ignore"))
+                if (from.isEqualNode(to) || from.hasAttribute("wire:ignore") || to.hasAttribute("wire:id") && to.getAttribute("wire:id") != that.id)
                     return false
                 return to
             },
@@ -199,15 +256,15 @@ class Component {
 
     dispatchEvents(events) {
         for (let event of events) {
-            // console.log(event)
             this.eventDispatcher.fireEvent(event["event"], ...event["args"])
         }
     }
     updateDirtyInputs(el, dirtyInputs) {
+        let we = el.WiredElementObject;
         if (el.hasAttribute("wire:id") && el.getAttribute("wire:id") != this.element.getAttribute("wire:id"))
             return
-        if (el.hasAttribute("wire:model")) {
-            let model = el.getAttribute("wire:model")
+        if (we.hasAttribute("model")) {
+            let model = we.getAttribute("model")
             if (dirtyInputs.indexOf(model) != -1) {
                 el.value = this.data[model]
             }
@@ -229,5 +286,56 @@ class Component {
         this.updateDirtyInputs(this.element, response["dirtyInputs"])
         if (response["redirect"])
             window.location = response["redirect"]
+    }
+
+
+
+    listenOnTarget(target, activateCallback, deactivateCallback) {
+        if (!(target in this.loadingStateListeners)) {
+            this.loadingStateListeners[target] = []
+            this.loadingStateActivations[target] = 0
+        }
+        this.loadingStateListeners[target].push([activateCallback, deactivateCallback])
+    }
+
+    activateTarget(target) {
+        console.log("Activating", this.loadingStateActivations[""])
+        if (target in this.loadingStateListeners) {
+            this.loadingStateActivations[target] += 1
+            if (this.loadingStateActivations[target] == 1)
+                for (let callback of this.loadingStateListeners[target])
+                    callback[0]()
+        }
+        if ("" in this.loadingStateListeners) {
+            this.loadingStateActivations[""] += 1
+            if (this.loadingStateActivations[""] == 1)
+                for (let callback of this.loadingStateListeners[""])
+                    callback[0]()
+        }
+    }
+
+    deactivateTarget(target) {
+        console.log("Deactivating", this.loadingStateActivations[""])
+        if (target in this.loadingStateListeners) {
+            assert(false)
+            this.loadingStateActivations[target] -= 1
+            if (this.loadingStateActivations[target] == 0)
+                for (let callback of this.loadingStateListeners[target])
+                    callback[1]()
+        }
+        if ("" in this.loadingStateListeners) {
+            this.loadingStateActivations[""] -= 1
+            if (this.loadingStateActivations[""] == 0)
+                for (let callback of this.loadingStateListeners[""])
+                    callback[1]()
+        }
+    }
+
+    deactivator(target) {
+
+        let func = () => {
+            this.deactivateTarget(target)
+        }
+        return func.bind(this)
     }
 }

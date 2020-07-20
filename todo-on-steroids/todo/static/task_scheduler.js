@@ -20,6 +20,7 @@ class TaskScheduler {
         func = this.tasks[id][0][0]
         args = this.tasks[id][0][1]
         // console.log(this.componentRegistry.getComponentById(id))
+        // console.log(func)
         func.call(this.componentRegistry.getComponentById(id), ...args, done_callback)
     }
 

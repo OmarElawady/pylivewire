@@ -1,4 +1,36 @@
-<section class="todoapp" wire:polling.interval.1>
+<section class="todoapp">
+    <style>
+        .bg-gray {
+            background-color: gray;
+        }
+    </style>
+    <div style="display:none;">
+        <div wire:loading.class.add="bg-gray">
+            Grayed when loading
+        </div>
+        <br />
+        <div class="bg-gray" wire:loading.class.remove="bg-gray">
+            grayed when loaded
+        </div>
+        <br />
+        <div wire:loading>
+            Shown when loading
+        </div>
+        <br />
+        <div wire:loading.remove>
+            Shown when loaded
+        </div>
+        <br />
+
+        <div wire:loading.attr.add="hidden">
+            Unhidden when loaded
+        </div>
+        <br />
+        <div hidden wire:loading.attr.remove="hidden">
+            Unhidden when loading
+        </div>
+    </div>
+
     <div>
         <label for="upload">
             <img style="width:50px;height:50px" src="{{ avatarURL }}?rand={{ now() }}" />
