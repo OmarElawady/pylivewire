@@ -1,10 +1,10 @@
-<section class="todoapp" wire:init="say">
+<section class="todoapp">
     <style>
         .bg-gray {
             background-color: gray;
         }
     </style>
-    <div>
+    <!-- <div>
         <div wire:loading.class.add="bg-gray">
             Grayed when loading
         </div>
@@ -29,9 +29,9 @@
         <div hidden wire:loading.attr.remove="hidden">
             Unhidden when loading
         </div>
-    </div>
-    <div wire:offline>
-        Hello world
+    </div> -->
+    <div wire:dirty wire:target="toadd">
+        Unsynced data
     </div>
     <div>
         <label for="upload">
@@ -42,8 +42,8 @@
 
     <header class="header">
         <h1>todos {{ title_suffix }} </h1>
-        <input wire:click.prefetch="toggle_title" class="new-todo" placeholder="What needs to be done?"
-            wire:model.debounce.3000="toadd" wire:keydown.enter.prevent.stop="add_item" autofocus>
+        <input class="new-todo" placeholder="What needs to be done?" wire:model.lazy="toadd"
+            wire:keydown.enter.stop="add_item" autofocus>
         {% if 'toadd' in errors %}
         <span style='color:red;font-size:13;'>* {{errors['toadd'][0]}}</span>
         {% endif %}

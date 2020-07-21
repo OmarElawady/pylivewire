@@ -22,6 +22,7 @@ class WiredElement {
         this.addEventListeners()
         this.addPolling()
         this.addLoadingState()
+        this.addDirtyState()
         this.addOfflineState()
     }
 
@@ -54,6 +55,13 @@ class WiredElement {
             this.addFileModel()
         else
             this.addInputModel()
+        let handler = (ev) => {
+            // console.log(this.getAttributeObject("model").getValue(this.element), this.element.value)
+            this.component.changeValue(this.getAttributeObject("model").getValue(this.element), this.element.value)
+        }
+        handler = handler.bind(this)
+        this.element.addEventListener("input", handler)
+        this.listeners.push({ event: "input", handler: handler })
     }
 
     addFileModel() {
@@ -76,7 +84,6 @@ class WiredElement {
         if (!("polling" in this.attrs))
             return
         let pollingInterval = this.getAttributeObject("polling").getModifier("interval") || 10
-        // console.log(this.getAttributeObject("polling"))
         setInterval(this.component.refresh.bind(this.component), pollingInterval * 1000)
     }
 
@@ -88,6 +95,21 @@ class WiredElement {
             this.element.setAttribute("wire:ignore", "")
         }
     }
+
+    addDirtyState() {
+        if (!(this.hasAttribute("dirty")))
+            return
+        let targets = ""
+        this.element.setAttribute("wire:ignore", "")
+        if (this.hasAttribute("target"))
+            targets = this.getAttribute("target")
+        targets = targets.split(',')
+        targets = targets.map(x => x.trim())
+        for (let target of targets) {
+            this.component.listenOnDirty(target, this.activateDirtyStates.bind(this), this.deactivateDirtyStates.bind(this))
+        }
+    }
+
     /* loading state */
     addLoadingState() {
         if (!(this.hasAttribute("loading")))
@@ -95,19 +117,18 @@ class WiredElement {
         let targets = ""
         this.element.setAttribute("wire:ignore", "")
         if (this.hasAttribute("target"))
-            target = this.getAttribute(target)
+            targets = this.getAttribute("target")
         targets = targets.split(',')
         targets = targets.map(x => x.trim())
         // let loadingActions = this.getAttributeObjectList("loading")
         for (let target of targets) {
             this.component.listenOnTarget(target, this.activateLoadingStates.bind(this), this.deactivateLoadingStates.bind(this))
-            // this.addLoadingAction(loadingAction, targets)
         }
     }
 
-    activateLoadingState(loadingAction) {
-        let val = loadingAction.getValue(this.element)
-        let mods = loadingAction.getModifiers()
+    applyStateMods(wireAttr) {
+        let val = wireAttr.getValue(this.element)
+        let mods = wireAttr.getModifiers()
         if (Object.keys(mods).length === 0)
             this.showElement()
         if ("remove" in mods)
@@ -121,9 +142,9 @@ class WiredElement {
         if (mods["attr"] == "add")
             this.addAttribute(val)
     }
-    deactivateLoadingState(loadingAction) {
-        let val = loadingAction.getValue(this.element)
-        let mods = loadingAction.getModifiers()
+    deapplyStateMods(wireAttr) {
+        let val = wireAttr.getValue(this.element)
+        let mods = wireAttr.getModifiers()
         if (Object.keys(mods).length === 0)
             this.hideElement()
         if ("remove" in mods)
@@ -137,17 +158,32 @@ class WiredElement {
         if (mods["attr"] == "add")
             this.removeAttribute(val)
     }
+
     activateLoadingStates() {
         let loadingActions = this.getAttributeObjectList("loading")
         for (let loadingAction of loadingActions) {
-            this.activateLoadingState(loadingAction)
+            this.applyStateMods(loadingAction)
         }
     }
 
     deactivateLoadingStates() {
         let loadingActions = this.getAttributeObjectList("loading")
         for (let loadingAction of loadingActions) {
-            this.deactivateLoadingState(loadingAction)
+            this.deapplyStateMods(loadingAction)
+        }
+    }
+
+    activateDirtyStates() {
+        let dirtsyActions = this.getAttributeObjectList("dirty")
+        for (let dirtsyAction of dirtsyActions) {
+            this.applyStateMods(dirtsyAction)
+        }
+    }
+
+    deactivateDirtyStates() {
+        let dirtsyActions = this.getAttributeObjectList("dirty")
+        for (let dirtsyAction of dirtsyActions) {
+            this.deapplyStateMods(dirtsyAction)
         }
     }
 
@@ -281,12 +317,12 @@ class WiredElement {
     /* element toggling classes */
 
     addClass(className) {
-        console.log("Adding")
+        // console.log("Adding")
         this.element.classList.add(className)
     }
 
     removeClass(className) {
-        console.log("Removing")
+        // console.log("Removing")
         this.element.classList.remove(className)
     }
 

@@ -28,11 +28,14 @@ class Component {
         this.component_data = this.parseInitialData()
         this.eventDispatcher.registerComponent(this)
         this.data = this.component_data["data"]
+        this.unsyncedData = this.data
+        // console.log(this.unsyncedData)
         this.name = this.component_data["name"]
         this.renderedChildren = this.component_data["renderedChildren"]
         this.childrenComponents = []
         this.loadingStateListeners = {}
         this.prefetched = {}
+        this.dirtyStateListeners = {}
         this.loadingStateActivations = { "": 0 }
         this.initWalk(this.element)
         this.eventDispatcher.registerComponent(this)
@@ -41,14 +44,14 @@ class Component {
     postInit() {
         let we = this.element.WiredElementObject
         if (we.hasAttribute("init")) {
-            console.log(we.getValue(), this.data[we.getAttribute("model")])
+            // console.log(we.getValue(), this.data[we.getAttribute("model")])
             this.callMethod(we.getAttribute("init"))
         }
         this.backSyncModels(this.element)
     }
     backSyncModels(element) {
         let we = element.WiredElementObject
-        if (we.hasAttribute("model") && we.getValue() != this.data[we.getAttribute("model")])
+        if (we.hasAttribute("model") && we.getValue() != this.data[we.getAttribute("model")] && element.type != "file")
             we.updateValue()
         element = element.firstElementChild
         while (element) {
@@ -228,6 +231,15 @@ class Component {
         this.addTask(this.sendSyncRequest, field, value)
     }
 
+    changeValue(field, value) {
+        this.unsyncedData[field] = value
+        if (this.unsyncedData[field] != this.data[field])
+            this.activateDirtyState(field)
+        console.log(this.unsyncedData[field], this.data[field], value)
+        if (this.unsyncedData[field] == this.data[field])
+            this.deactivateDirtyState(field)
+    }
+
     fireEvent(event, ...args) {
         this.addTask(this.sendEventRequest, event, args)
     }
@@ -321,7 +333,12 @@ class Component {
     processResponse(response) {
         response = JSON.parse(response)
         let newDOM = response["dom"]
+        // for (let field in this.unsyncedData)
+        //     this.changeValue(field, this.data[field])
         this.data = response["newData"]
+        for (let field in this.data)
+            this.changeValue(field, this.data[field])
+
         this.renderedChildren = response["renderedChildren"]
         this.update_dom(newDOM)
         this.dispatchEvents(response["dispatchEvents"])
@@ -346,7 +363,7 @@ class Component {
     }
 
     activateTarget(target) {
-        console.log("Activating", this.loadingStateActivations[""])
+        // console.log("Activating", this.loadingStateActivations[""])
         if (target in this.loadingStateListeners) {
             this.loadingStateActivations[target] += 1
             if (this.loadingStateActivations[target] == 1)
@@ -362,9 +379,8 @@ class Component {
     }
 
     deactivateTarget(target) {
-        console.log("Deactivating", this.loadingStateActivations[""])
+        // console.log("Deactivating", this.loadingStateActivations[""])
         if (target in this.loadingStateListeners) {
-            assert(false)
             this.loadingStateActivations[target] -= 1
             if (this.loadingStateActivations[target] == 0)
                 for (let callback of this.loadingStateListeners[target])
@@ -375,6 +391,47 @@ class Component {
             if (this.loadingStateActivations[""] == 0)
                 for (let callback of this.loadingStateListeners[""])
                     callback[1]()
+        }
+    }
+
+    deactivator(target) {
+
+        let func = () => {
+            this.deactivateTarget(target)
+        }
+        return func.bind(this)
+    }
+    /* dirty state events */
+
+    listenOnDirty(target, activateCallback, deactivateCallback) {
+        if (!(target in this.dirtyStateListeners)) {
+            this.dirtyStateListeners[target] = []
+        }
+        this.dirtyStateListeners[target].push([activateCallback, deactivateCallback])
+    }
+
+    activateDirtyState(target) {
+        console.log("Activating dirty", target)
+        if (target in this.dirtyStateListeners) {
+            console.log(this.dirtyStateListeners)
+            for (let callback of this.dirtyStateListeners[target])
+                callback[0]()
+        }
+        if ("" in this.dirtyStateListeners) {
+            for (let callback of this.dirtyStateListeners[""])
+                callback[0]()
+        }
+    }
+
+    deactivateDirtyState(target) {
+        console.log("Deactivating dirty", target)
+        if (target in this.dirtyStateListeners) {
+            for (let callback of this.dirtyStateListeners[target])
+                callback[1]()
+        }
+        if ("" in this.dirtyStateListeners) {
+            for (let callback of this.dirtyStateListeners[""])
+                callback[1]()
         }
     }
 
