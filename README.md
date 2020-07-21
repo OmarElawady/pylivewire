@@ -55,7 +55,7 @@ class UserComponent(Component):
     return self.render_template("user_view.html")
 ```
 
-#### Events:
+#### Pylivewire events:
 
 The compoent specefies the events it listens on by declaring a class property `listeners`. Currently, the listeners is the same for the objects of the same component and it can't be changed.
 
@@ -70,6 +70,40 @@ class UserComponent(Component):
 
   def change_user_type(self, user_type): # False for normal, True for admin
     self.is_admin = True
+```
+
+#### Lifecycle hooks:
+
+Lifecycle hooks is specified in the component class and is called at mounting, hydrating or field updates. Mount hook is called the first time the component is loaded. Hydrate is called each time the component is rerendered including the first time. Field updated have two types, _updated\_field_ and _updating\_field_ with the later being called before the field is updated and it returns a boolean indicating whether the update should be performed.
+
+Example:
+
+```python
+def UserComponent(Component):
+  first_name = "omar"
+  mounting_state = ""
+  hydrated = False
+  field_update_message = ""
+  
+  def mount(self):
+    self.mounting_state = "Mounted"
+  
+  def hydrate(self):
+    self.hydrated = True
+  
+  def updating_first_name(self, field, value):
+    if first_name == "satan":
+      self.field_update_message = "No devils allowed here!"
+      return False
+    else:
+      return True
+    
+  def updated_first_name(self, field, value):
+    if first_name == "satan":
+      self.field_update_message = "Hello satan :)"
+    else:
+      self.field_update_message = "Hello normal user"
+    
 ```
 
 #### Rendering:
@@ -94,6 +128,92 @@ The component keeps track of its rendered child using their "wire:key" property.
 
 When anything interesting happens in a component (later on what's interesting), a request is sent to the server with the appropriate payload. The server processes the request and reponds with the data along with some other meta data used to update the component.
 
+### Browser events:
+
+To add a new event on an element (e.g. click or mouseover) you can add a property wire:_eventname_. The value of this property should be a call to a method.
+
+You can also add modifiers to alter the behaviour of the event handler. The _prevent_ modifier prevent the propagation of the event to the element's parent. The _self_ modifier fires makes the event fire only when the target of the event is the element that contains this property. When dealing with keyboard events, it's sometimes convenient to filter the event to only a specific key press. You can do this by adding _enter_ modifier to fire only when the user presses enter, another keyboard event filters are _escape_ and _arrow-right_, others to be added later. You can add multiple modifiers by stacking them like wire:keydown.enter.prevent.self
+
+Example:
+
+```html
+<input type="text" wire:keydown.enter="sayHi">
+<input type="text" wire:click.self.prevent="sayHello">
+```
+### State aware elements:
+
+You can show/hide or toggle classes and attributes when the state of the component changes. Currently there're three types of states that the element can listen on.
+
+#### Loading state:
+
+This state is activated only when the client is making a request to the server. You can show or hide an element when the loading state is activated. You can also toggle classes or attributes. Due to being updated using js, the dom updates to state aware elements is ignored. A target may also be specified to listen only on loading for specific model syncs or method calls using wire:target property. Multiple targets can be specifed by separating them with commas.
+
+Example:
+
+```html
+<input type="text" wire:model="first_name" />
+<button wire:click="sayHi('qwre')">say hi</button> 
+<div wire:loading>loading</div> <!-- shown when loading -->
+<div wire:loading.remove>Loaded</div> <!-- hidden when loading -->
+<div wire:target="first_name" wire:loading.class.add="bg-gray">loading</div><!-- class bg-gray is added when syncing first_name -->
+<div class="bg-gray" wire:loading.class.remove="bg-gray">loading</div><!-- class bg-gray is removed when loading -->
+<div wire:target="sayHi('qwre')" wire:loading.attr.add="style='color:black'">loading</div><!-- Adding attribute on requests that calls the specified event -->
+<div class="bg-gray" wire:loading.attr.remove="style">loading</div><!-- removing attribute -->
+```
+
+#### Dirty state:
+
+Same as loading state with the following differences. It's activated when a data element is wired to the backend and not yet synced with the backend. This might happen because of _lazy_ modifier or debouncing. _target_ specifies the model to listen on. Otherwise, the element acts as a global listener for any wired element update.
+
+Example:
+
+```html
+<input type="text" wire:model.lazy="first_name" />
+<input type="text" wire:model.debounce.1000="last_name" />
+<div wire:dirty>loading</div> <!-- shown when either inputs is not in sync -->
+<div wire:target="first_name" wire:loading.remove>Loaded</div> <!-- hidden when only first_name is not in sync -->
+```
+
+#### Offline state:
+
+Activated when the page is no longer connected to the internet.
+
+Example:
+
+```html
+<div wire:offline>
+  You are not offline!
+</div>
+```
+
+### Defer loading:
+
+This allows the execution of a method after the all the components is loaded. It can only be added to the root of the component.
+
+Example:
+
+```html
+<div wire:init="loadPosts">
+<!-- bunch of other stuff -->
+</div>
+```
+
+### File uploads:
+
+You can wire an input of type file to a property and it gets updated with a file object when the component is loaded on the server. You can read it, save it, or validate it.
+
+### Prefetching:
+
+Prefetching extracts the new data of the component aimed at being viewed when the user clicks on an input and caches it. If the user actually clicks the input. If he doesn't, it gets invalidated with the newest request is sent from the componnet.
+
+Example:
+
+```html
+<input wire:click.prefetch="toggleUserList" />
+```
+### Turbolinks:
+
+You can do nothing here. This is just to say that pylivewire is turbolink-friendly.
 
 ### Interaction between client and server:
 
