@@ -1,3 +1,51 @@
-<form>
-    <input type="file" wire:model="photo" />
-</form>
+<div style="position:fixed;top:20px;right: 20px;width:350px;">
+    <style>
+        .close {
+            display: inline-block;
+            right: 0;
+            width: 16px;
+            height: 16px;
+            margin-left: 8px;
+            opacity: 0.6;
+        }
+
+        .close:hover {
+            opacity: 1;
+        }
+
+        .close:before,
+        .close:after {
+            left: 8px;
+            display: inline-block;
+            content: ' ';
+            height: 17px;
+            width: 1px;
+            background-color: #333;
+        }
+
+        .close:before {
+            transform: rotate(45deg);
+        }
+
+        .close:after {
+            transform: rotate(-45deg);
+        }
+    </style>
+    {% for message in messages %}
+    <div class="bg-teal-100 border-t-4 border-teal-500 rounded-b text-teal-900 px-4 py-3 shadow-md" role="alert">
+        <div class="flex" style="justify-content: space-between;">
+            <div class="py-1"><svg class="fill-current h-6 w-6 text-teal-500 mr-4" xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20">
+                    <path
+                        d="M2.93 17.07A10 10 0 1 1 17.07 2.93 10 10 0 0 1 2.93 17.07zm12.73-1.41A8 8 0 1 0 4.34 4.34a8 8 0 0 0 11.32 11.32zM9 11V9h2v6H9v-4zm0-6h2v2H9V5z" />
+                </svg></div>
+            <div>
+                <p class="text-xl">{{message}}</p>
+            </div>
+            <div style="margin-left:auto">
+                <a href="#" class="close" wire:click.prevent="remove('{{messages_id[loop.index0]}}')"></a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>

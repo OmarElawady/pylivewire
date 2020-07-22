@@ -7,12 +7,6 @@ Admin page
 
 
 {% block content %}
-<script src="//code.jquery.com/jquery-1.11.1.min.js"></script>
-<link href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css" rel="stylesheet" id="bootstrap-css">
-<link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/css/toastr.min.css" rel="stylesheet"
-    id="bootstrap-css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/js/toastr.min.js"></script>
-<script src="//netdna.bootstrapcdn.com/bootstrap/3.0.0/js/bootstrap.min.js"></script>
 <div style="display: flex;">
     <div style="flex: 0 0 30%;margin-left:90px;margin-top:90px;">
 
@@ -22,6 +16,9 @@ Admin page
     <div style="flex: 0 0 30%;margin-right:90px;margin-top:90px;">
 
         {{ pylivewirecaller("TODOList")|safe }}
+
     </div>
 </div>
+{{ pylivewirecaller("Notification")|safe }}
+{{ pylivewirecaller("Monitor")|safe }}
 {% endblock %}

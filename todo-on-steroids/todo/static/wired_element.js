@@ -56,7 +56,7 @@ class WiredElement {
         else
             this.addInputModel()
         let handler = (ev) => {
-            // console.log(this.getAttributeObject("model").getValue(this.element), this.element.value)
+            console.log("Updating in handler", ev.target.value, this.element.value)
             this.component.changeValue(this.getAttributeObject("model").getValue(this.element), this.element.value)
         }
         handler = handler.bind(this)
@@ -83,8 +83,9 @@ class WiredElement {
     addPolling() {
         if (!("polling" in this.attrs))
             return
-        let pollingInterval = this.getAttributeObject("polling").getModifier("interval") || 10
-        setInterval(this.component.refresh.bind(this.component), pollingInterval * 1000)
+        let pollingInterval = this.getAttributeObject("polling").getModifier("interval") || 10000
+        console.log(pollingInterval)
+        setInterval(this.component.refresh.bind(this.component), pollingInterval)
     }
 
     addOfflineState() {
@@ -105,6 +106,12 @@ class WiredElement {
             targets = this.getAttribute("target")
         targets = targets.split(',')
         targets = targets.map(x => x.trim())
+        let loadingActions = this.getAttributeObjectList("dirty")
+        for (let loadingAction of loadingActions) {
+            let mods = loadingAction.getModifiers()
+            if (Object.keys(mods).length === 0)
+                this.hideElement()
+        }
         for (let target of targets) {
             this.component.listenOnDirty(target, this.activateDirtyStates.bind(this), this.deactivateDirtyStates.bind(this))
         }
@@ -121,6 +128,11 @@ class WiredElement {
         targets = targets.split(',')
         targets = targets.map(x => x.trim())
         // let loadingActions = this.getAttributeObjectList("loading")
+        for (let loadingAction of loadingActions) {
+            let mods = loadingAction.getModifiers()
+            if (Object.keys(mods).length === 0)
+                this.hideElement()
+        }
         for (let target of targets) {
             this.component.listenOnTarget(target, this.activateLoadingStates.bind(this), this.deactivateLoadingStates.bind(this))
         }

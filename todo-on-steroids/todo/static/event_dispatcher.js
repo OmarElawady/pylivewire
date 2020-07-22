@@ -34,7 +34,8 @@ class EventDispatcher {
     }
 
     fireEvent(event, ...args) {
-        for (let component of this.componentListeners[event])
-            component.fireEvent(event, ...args)
+        if (event in this.componentListeners)
+            for (let component of this.componentListeners[event])
+                component.fireEvent(event, ...args)
     }
 }

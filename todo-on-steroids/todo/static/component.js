@@ -28,7 +28,9 @@ class Component {
         this.component_data = this.parseInitialData()
         this.eventDispatcher.registerComponent(this)
         this.data = this.component_data["data"]
-        this.unsyncedData = this.data
+        this.unsyncedData = {}
+        for (let f in this.data)
+            this.unsyncedData[f] = this.data[f]
         // console.log(this.unsyncedData)
         this.name = this.component_data["name"]
         this.renderedChildren = this.component_data["renderedChildren"]
