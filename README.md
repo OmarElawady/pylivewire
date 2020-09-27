@@ -19,6 +19,8 @@ goto localhost:5000
 
 ## Docs
 
+Tutorials: https://omarelawady.github.io/pylivewire/doc/
+
 ### Components:
 
 The whole project revolves around the idea of a component. The component is a python object of a class that inherits the Component class.
